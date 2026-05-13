@@ -90,6 +90,31 @@
 	display: flex;
 }
 
+.svg-edit-context-path {
+	display: none;
+	align-items: center;
+	gap: 5px;
+	min-height: 24px;
+	padding-top: 1px;
+	color: #fff;
+	font-size: var(--font-ui-smaller);
+	border-top: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-context-path.is-visible {
+	display: flex;
+}
+
+.svg-edit-context-path button {
+	height: 20px;
+	padding: 0 6px;
+	color: #fff;
+	background: var(--svg-edit-chrome-dark);
+	border: 1px solid var(--svg-edit-line);
+	border-radius: 0;
+	font-size: inherit;
+}
+
 .svg-edit-selection-panel {
 	display: none;
 }
@@ -132,6 +157,12 @@
 	font-size: var(--font-ui-smaller);
 	background: var(--svg-edit-chrome-dark);
 	border-right: 1px solid var(--svg-edit-line);
+	cursor: pointer;
+}
+
+.svg-edit-brand-panel:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
 }
 
 .svg-edit-brand-panel svg {
@@ -260,6 +291,28 @@
 	border-color: var(--svg-edit-chrome-dark);
 }
 
+.svg-edit-icon-button:disabled,
+.svg-edit-icon-button.is-disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+.svg-edit-reorient-button {
+	display: none;
+}
+
+.svg-edit-reorient-button.is-visible {
+	display: inline-flex;
+}
+
+.svg-edit-use-only-button {
+	display: none;
+}
+
+.svg-edit-use-only-button.is-visible {
+	display: inline-flex;
+}
+
 .svg-edit-icon-button svg {
 	width: 15px;
 	height: 15px;
@@ -310,6 +363,14 @@
 	border: 1px solid var(--svg-edit-line);
 }
 
+.svg-edit-text-control input {
+	width: 128px;
+	min-width: 0;
+	height: 22px;
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+}
+
 .svg-edit-palette {
 	display: inline-flex;
 	align-items: center;
@@ -343,13 +404,16 @@
 
 .svg-edit-canvas-host.is-grid-visible {
 	background:
-		linear-gradient(45deg, rgba(0, 0, 0, 0.18) 25%, transparent 25%),
-		linear-gradient(-45deg, rgba(0, 0, 0, 0.18) 25%, transparent 25%),
-		linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.18) 75%),
-		linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.18) 75%);
+		linear-gradient(to right, var(--svg-edit-grid-color, rgba(0, 0, 0, 0.18)) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--svg-edit-grid-color, rgba(0, 0, 0, 0.18)) 1px, transparent 1px),
+		linear-gradient(to right, var(--svg-edit-grid-major-color, rgba(0, 0, 0, 0.34)) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--svg-edit-grid-major-color, rgba(0, 0, 0, 0.34)) 1px, transparent 1px);
 	background-color: var(--svg-edit-workspace);
-	background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-	background-size: 20px 20px;
+	background-size:
+		var(--svg-edit-grid-minor-size, 10px) var(--svg-edit-grid-minor-size, 10px),
+		var(--svg-edit-grid-minor-size, 10px) var(--svg-edit-grid-minor-size, 10px),
+		var(--svg-edit-grid-major-size, 100px) var(--svg-edit-grid-major-size, 100px),
+		var(--svg-edit-grid-major-size, 100px) var(--svg-edit-grid-major-size, 100px);
 }
 
 .svg-edit-canvas-host #svgroot {
@@ -478,7 +542,7 @@
 
 .svg-edit-layer-panel {
 	display: grid;
-	grid-template-rows: auto auto minmax(0, 1fr);
+	grid-template-rows: auto auto auto minmax(0, 1fr);
 	gap: 6px;
 	min-width: 0;
 	padding: 8px;
@@ -511,6 +575,55 @@
 
 .svg-edit-layer-actions {
 	flex-wrap: wrap;
+}
+
+.svg-edit-overview {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.svg-edit-overview-header {
+	display: flex;
+	align-items: center;
+	min-height: 20px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+}
+
+.svg-edit-overview-stage {
+	position: relative;
+	height: 112px;
+	overflow: hidden;
+	background:
+		linear-gradient(45deg, var(--background-secondary) 25%, transparent 25%),
+		linear-gradient(-45deg, var(--background-secondary) 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, var(--background-secondary) 75%),
+		linear-gradient(-45deg, transparent 75%, var(--background-secondary) 75%);
+	background-color: var(--background-primary);
+	background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+	background-size: 12px 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+	cursor: crosshair;
+}
+
+.svg-edit-overview-svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+	pointer-events: none;
+}
+
+.svg-edit-overview-viewport {
+	position: absolute;
+	inset: 0 auto auto 0;
+	border: 1px solid var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--background-primary) 70%, transparent);
+	pointer-events: none;
 }
 
 .svg-edit-layer-list {
@@ -677,7 +790,7 @@
 
 .svg-source-modal .modal-content {
 	display: grid;
-	grid-template-rows: minmax(0, 1fr) auto;
+	grid-template-rows: minmax(0, 1fr) auto auto;
 	gap: 10px;
 	height: calc(min(86vh, 720px) - 72px);
 }
@@ -691,7 +804,121 @@
 	font-size: var(--font-ui-small);
 }
 
+.svg-source-options {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+.svg-source-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: var(--font-ui-small);
+	user-select: none;
+}
+
 .svg-source-actions {
 	display: flex;
+	gap: 8px;
 	justify-content: flex-end;
+}
+
+.svg-document-properties-modal {
+	width: min(92vw, 460px);
+}
+
+.svg-document-properties-form {
+	display: grid;
+	gap: 10px;
+}
+
+.svg-document-properties-field {
+	display: grid;
+	grid-template-columns: 84px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	font-size: var(--font-ui-small);
+}
+
+.svg-document-properties-field input,
+.svg-document-properties-form select {
+	width: 100%;
+}
+
+.svg-document-properties-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 14px;
+}
+
+.svg-editor-preferences-modal {
+	width: min(92vw, 520px);
+}
+
+.svg-editor-preferences-form {
+	display: grid;
+	gap: 10px;
+}
+
+.svg-editor-preferences-field {
+	display: grid;
+	grid-template-columns: 128px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	font-size: var(--font-ui-small);
+}
+
+.svg-editor-preferences-checkbox input {
+	justify-self: start;
+}
+
+.svg-editor-preferences-field input,
+.svg-editor-preferences-field select {
+	width: 100%;
+}
+
+.svg-editor-preferences-field input[type="checkbox"] {
+	width: auto;
+}
+
+.svg-editor-preferences-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 14px;
+}
+
+.svg-export-modal {
+	width: min(92vw, 420px);
+}
+
+.svg-export-form {
+	display: grid;
+	gap: 10px;
+}
+
+.svg-export-field {
+	display: grid;
+	grid-template-columns: 84px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	font-size: var(--font-ui-small);
+}
+
+.svg-export-field.is-hidden {
+	display: none;
+}
+
+.svg-export-field input,
+.svg-export-field select {
+	width: 100%;
+}
+
+.svg-export-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 14px;
 }

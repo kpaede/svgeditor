@@ -20,6 +20,8 @@ export function modeLabel(mode: string): string {
 			return 'Path';
 		case 'ext-panning':
 			return 'Panning';
+		case 'eyedropper':
+			return 'Eyedropper';
 		default:
 			return mode;
 	}
