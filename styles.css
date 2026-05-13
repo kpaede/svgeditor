@@ -1,0 +1,697 @@
+.svg-edit-modal {
+	width: min(98vw, 1440px);
+	height: min(94vh, 940px);
+	--svg-edit-chrome: #737978;
+	--svg-edit-chrome-dark: #2f3c42;
+	--svg-edit-chrome-mid: #596061;
+	--svg-edit-workspace: #aaa;
+	--svg-edit-panel: #d8d8d8;
+	--svg-edit-control: #c6c6c6;
+	--svg-edit-accent: #f2c300;
+	--svg-edit-line: #5d6362;
+}
+
+.svg-edit-modal .modal-content {
+	height: calc(min(94vh, 940px) - 56px);
+	padding: 0;
+}
+
+.svg-edit-shell {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	height: 100%;
+	min-height: 0;
+	color: #111;
+	background: var(--svg-edit-workspace);
+	border: 0;
+	border-radius: 0;
+	overflow: hidden;
+}
+
+.svg-edit-top,
+.svg-edit-bottom {
+	display: flex;
+	align-items: center;
+	gap: 1px;
+	min-height: 28px;
+	padding: 2px 4px;
+	background: var(--svg-edit-chrome);
+	border-color: var(--svg-edit-line);
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+}
+
+.svg-edit-top {
+	display: grid;
+	grid-template-rows: auto auto;
+	gap: 1px;
+	border-bottom: 1px solid var(--svg-edit-line);
+	overflow: hidden;
+}
+
+.svg-edit-bottom {
+	min-height: 30px;
+	border-top: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-top-main,
+.svg-edit-top-context,
+.svg-edit-top-text {
+	display: flex;
+	align-items: center;
+	gap: 1px;
+	min-width: 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+}
+
+.svg-edit-top-context {
+	display: none;
+}
+
+.svg-edit-top-context.is-visible {
+	display: flex;
+}
+
+.svg-edit-top-context,
+.svg-edit-top-text {
+	min-height: 26px;
+	padding-top: 1px;
+	border-top: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-top-text {
+	display: none;
+}
+
+.svg-edit-top-text.is-visible {
+	display: flex;
+}
+
+.svg-edit-selection-panel {
+	display: none;
+}
+
+.svg-edit-selection-panel.is-visible {
+	display: flex;
+}
+
+.svg-edit-body {
+	display: grid;
+	grid-template-columns: 40px minmax(0, 1fr) 0;
+	min-height: 0;
+}
+
+.svg-edit-body.has-layer-panel {
+	grid-template-columns: 40px minmax(0, 1fr) 220px;
+}
+
+.svg-edit-left {
+	display: flex;
+	position: relative;
+	flex-direction: column;
+	align-items: center;
+	gap: 1px;
+	padding: 8px 6px;
+	background: var(--svg-edit-chrome);
+	border-right: 1px solid var(--svg-edit-line);
+	overflow: visible;
+	z-index: 5;
+}
+
+.svg-edit-brand-panel {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 26px;
+	padding: 0 6px;
+	color: #fff;
+	font-weight: 600;
+	font-size: var(--font-ui-smaller);
+	background: var(--svg-edit-chrome-dark);
+	border-right: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-brand-panel svg {
+	width: 16px;
+	height: 16px;
+	color: var(--svg-edit-accent);
+}
+
+.svg-edit-brand-caret {
+	font-size: 10px;
+}
+
+.svg-edit-title-panel {
+	display: flex;
+	align-items: center;
+	min-width: 106px;
+	max-width: 138px;
+	height: 26px;
+	padding: 0 8px;
+	color: #fff;
+	font-weight: 700;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+}
+
+.svg-edit-title-panel p {
+	overflow: hidden;
+	margin: 0;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.svg-edit-panel {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.svg-edit-context-panel {
+	display: none;
+}
+
+.svg-edit-context-panel.is-visible {
+	display: inline-flex;
+}
+
+.svg-edit-flying-tool {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.svg-edit-flying-tool::after {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-left: 4px solid var(--text-faint);
+	content: "";
+	pointer-events: none;
+}
+
+.svg-edit-flyout {
+	position: absolute;
+	top: 0;
+	left: calc(100% + 5px);
+	display: none;
+	align-items: center;
+	gap: 3px;
+	padding: 4px;
+	background: var(--svg-edit-panel);
+	border: 1px solid #8a8a8a;
+	border-radius: 0;
+	box-shadow: none;
+	z-index: 20;
+}
+
+.svg-edit-flying-tool:hover .svg-edit-flyout,
+.svg-edit-flying-tool:focus-within .svg-edit-flyout {
+	display: flex;
+}
+
+.tool_sep {
+	width: 1px;
+	height: 24px;
+	margin: 0 2px;
+	background: var(--svg-edit-line);
+}
+
+.svg-edit-left .tool_sep {
+	width: 28px;
+	height: 1px;
+	margin: 4px 0;
+}
+
+.svg-edit-icon-button {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 25px;
+	height: 25px;
+	padding: 0;
+	color: #fff;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.svg-edit-left .svg-edit-icon-button {
+	width: 27px;
+	height: 27px;
+	color: var(--svg-edit-accent);
+	background: transparent;
+}
+
+.svg-edit-icon-button:hover,
+.svg-edit-icon-button.is-active {
+	color: var(--svg-edit-accent);
+	background: var(--svg-edit-chrome-dark);
+	border-color: var(--svg-edit-chrome-dark);
+}
+
+.svg-edit-icon-button svg {
+	width: 15px;
+	height: 15px;
+}
+
+.svg-edit-control {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 3px;
+	min-height: 24px;
+	padding: 0 3px;
+	color: #111;
+	font-size: var(--font-ui-smaller);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+}
+
+.svg-edit-control span {
+	max-width: 46px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.svg-edit-color-control input[type="color"] {
+	width: 20px;
+	height: 18px;
+	padding: 0;
+	border: 1px solid var(--svg-edit-line);
+	background: var(--svg-edit-control);
+}
+
+.svg-edit-number-control input {
+	width: 42px;
+	min-width: 0;
+	height: 22px;
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-select-control select {
+	max-width: 90px;
+	height: 22px;
+	font-size: var(--font-ui-smaller);
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-palette {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	height: 26px;
+	padding: 0 4px;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+}
+
+.svg-edit-swatch {
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border: 1px solid var(--svg-edit-line);
+	border-radius: 0;
+}
+
+.svg-edit-swatch.is-none {
+	background-image:
+		linear-gradient(45deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%);
+}
+
+.svg-edit-canvas-host {
+	min-width: 0;
+	min-height: 0;
+	overflow: auto;
+	background-color: var(--svg-edit-workspace);
+}
+
+.svg-edit-canvas-host.is-grid-visible {
+	background:
+		linear-gradient(45deg, rgba(0, 0, 0, 0.18) 25%, transparent 25%),
+		linear-gradient(-45deg, rgba(0, 0, 0, 0.18) 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.18) 75%),
+		linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.18) 75%);
+	background-color: var(--svg-edit-workspace);
+	background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+	background-size: 20px 20px;
+}
+
+.svg-edit-canvas-host #svgroot {
+	overflow: visible;
+}
+
+.svg-edit-canvas-host.is-zoom-mode {
+	cursor: zoom-in;
+}
+
+.svg-edit-canvas-host.is-pan-mode,
+.svg-edit-canvas-host.is-panning {
+	cursor: grab;
+}
+
+.svg-edit-canvas-host.is-panning {
+	cursor: grabbing;
+}
+
+.svg-edit-context-menu {
+	position: absolute;
+	z-index: 1000;
+	display: none;
+	min-width: 170px;
+	padding: 3px 0;
+	background: #eeeeee;
+	border: 1px solid #555;
+	box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28);
+	color: #111;
+	font-size: 12px;
+}
+
+.svg-edit-context-menu.is-open {
+	display: block;
+}
+
+.svg-edit-context-menu-item {
+	display: block;
+	width: 100%;
+	height: 24px;
+	padding: 0 22px 0 10px;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.svg-edit-context-menu-item:hover:not(.is-disabled) {
+	background: #2d3d45;
+	color: #fff;
+}
+
+.svg-edit-context-menu-item.is-disabled {
+	color: #888;
+	cursor: default;
+}
+
+.svg-edit-context-menu-separator {
+	height: 1px;
+	margin: 3px 0;
+	background: #c0c0c0;
+}
+
+.svg-edit-canvas-frame {
+	display: grid;
+	grid-template-columns: 17px minmax(0, 1fr);
+	grid-template-rows: 17px minmax(0, 1fr);
+	min-width: 0;
+	min-height: 0;
+	background: var(--svg-edit-workspace);
+}
+
+.svg-edit-ruler-corner {
+	grid-column: 1;
+	grid-row: 1;
+	background: #d7d7d7;
+	border-right: 1px solid #777;
+	border-bottom: 1px solid #777;
+	box-sizing: border-box;
+}
+
+.svg-edit-ruler {
+	overflow: hidden;
+	background: #d7d7d7;
+	box-sizing: border-box;
+	z-index: 6;
+}
+
+.svg-edit-ruler.is-hidden,
+.svg-edit-ruler-corner.is-hidden {
+	display: none;
+}
+
+.svg-edit-ruler-x {
+	grid-column: 2;
+	grid-row: 1;
+	height: 17px;
+	border-bottom: 1px solid #777;
+}
+
+.svg-edit-ruler-y {
+	grid-column: 1;
+	grid-row: 2;
+	width: 17px;
+	border-right: 1px solid #777;
+}
+
+.svg-edit-ruler-inner {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.svg-edit-ruler canvas {
+	display: block;
+	background: #d7d7d7;
+}
+
+.svg-edit-canvas-frame .svg-edit-canvas-host {
+	grid-column: 2;
+	grid-row: 2;
+}
+
+.svg-edit-layer-panel {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr);
+	gap: 6px;
+	min-width: 0;
+	padding: 8px;
+	background: var(--svg-edit-panel);
+	border-left: 1px solid var(--svg-edit-line);
+	overflow: hidden;
+}
+
+.svg-edit-layer-panel:not(.is-visible) {
+	display: none;
+}
+
+.svg-edit-layer-header,
+.svg-edit-layer-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+}
+
+.svg-edit-layer-title {
+	flex: 1 1 auto;
+	overflow: hidden;
+	color: var(--text-muted);
+	font-weight: 600;
+	font-size: var(--font-ui-small);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.svg-edit-layer-actions {
+	flex-wrap: wrap;
+}
+
+.svg-edit-layer-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-height: 0;
+	overflow: auto;
+}
+
+.svg-edit-layer-row {
+	display: grid;
+	grid-template-columns: 18px minmax(0, 1fr) 18px;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	min-height: 28px;
+	padding: 3px 6px;
+	text-align: left;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+}
+
+.svg-edit-layer-row.is-current {
+	border-color: var(--interactive-accent);
+	box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.svg-edit-layer-row svg {
+	width: 14px;
+	height: 14px;
+}
+
+.svg-edit-layer-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.svg-edit-layer-name.is-muted,
+.svg-edit-layer-empty {
+	color: var(--text-muted);
+}
+
+.svg-edit-shape-tool {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.svg-edit-shape-tool::after {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-left: 4px solid var(--svg-edit-accent);
+	content: "";
+	pointer-events: none;
+}
+
+.svg-edit-shape-flyout {
+	position: absolute;
+	top: 0;
+	left: calc(100% + 6px);
+	display: none;
+	grid-template-columns: 160px 90px;
+	gap: 0;
+	background: var(--svg-edit-panel);
+	border: 1px solid #8a8a8a;
+	box-shadow: none;
+	z-index: 30;
+}
+
+.svg-edit-shape-tool:hover .svg-edit-shape-flyout,
+.svg-edit-shape-tool:focus-within .svg-edit-shape-flyout,
+.svg-edit-shape-tool.is-open .svg-edit-shape-flyout {
+	display: grid;
+}
+
+.svg-edit-shape-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 28px);
+	grid-auto-rows: 28px;
+	gap: 4px;
+	padding: 6px;
+}
+
+.svg-edit-shape-grid .svg-edit-icon-button {
+	width: 28px;
+	height: 28px;
+	color: var(--svg-edit-accent);
+	background: var(--svg-edit-chrome);
+	border: 1px solid #8a8a8a;
+}
+
+.svg-edit-shape-grid .svg-edit-icon-button:hover {
+	background: var(--svg-edit-chrome-dark);
+}
+
+.svg-edit-shape-categories {
+	display: grid;
+	grid-auto-rows: 22px;
+	border-left: 1px solid #8a8a8a;
+}
+
+.svg-edit-shape-category {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	padding: 0 6px;
+	width: 100%;
+	height: 22px;
+	color: #111;
+	font-size: var(--font-ui-smaller);
+	text-align: left;
+	background: #eee;
+	box-shadow: none;
+	border-bottom: 1px solid #8a8a8a;
+	border-left: 0;
+	border-right: 0;
+	border-top: 0;
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.svg-edit-shape-category:hover {
+	background: #d7d7d7;
+}
+
+.svg-edit-shape-category.is-active {
+	color: #fff;
+	background: var(--svg-edit-chrome-dark);
+}
+
+.svg-edit-status {
+	display: inline-flex;
+	align-items: center;
+	min-width: 120px;
+	max-width: 220px;
+	height: 28px;
+	overflow: hidden;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.svg-edit-text-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.svg-source-modal {
+	width: min(92vw, 980px);
+	height: min(86vh, 720px);
+}
+
+.svg-source-modal .modal-content {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	gap: 10px;
+	height: calc(min(86vh, 720px) - 72px);
+}
+
+.svg-source-editor {
+	width: 100%;
+	height: 100%;
+	min-height: 360px;
+	resize: none;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+}
+
+.svg-source-actions {
+	display: flex;
+	justify-content: flex-end;
+}
