@@ -956,7 +956,7 @@ export class SvgEditModal extends Modal {
 					'aria-label': color === 'none' ? 'No Color' : color
 				}
 			});
-			swatch.style.backgroundColor = color === 'none' ? '#fff' : color;
+			swatch.setCssProps({ 'background-color': color === 'none' ? '#fff' : color });
 			swatch.toggleClass('is-none', color === 'none');
 			swatch.addEventListener('click', (event) => applyColor(color, event));
 			swatch.addEventListener('contextmenu', (event) => applyColor(color, event));
@@ -1153,7 +1153,7 @@ export class SvgEditModal extends Modal {
 		const normalized = value || 'none';
 		previewEl.removeClass('is-none');
 		previewEl.removeClass('is-gradient');
-		previewEl.style.background = '';
+		previewEl.setCssProps({ background: '' });
 		if (normalized === 'none' || normalized === 'transparent') {
 			previewEl.addClass('is-none');
 			labelEl.setText('none');
@@ -1161,11 +1161,11 @@ export class SvgEditModal extends Modal {
 		}
 		if (normalized.startsWith('url(')) {
 			previewEl.addClass('is-gradient');
-			previewEl.style.background = 'linear-gradient(135deg, #fff, #7f7f7f)';
+			previewEl.setCssProps({ background: 'linear-gradient(135deg, #fff, #7f7f7f)' });
 			labelEl.setText('gradient');
 			return;
 		}
-		previewEl.style.background = this.normalizedColor(normalized) ?? normalized;
+		previewEl.setCssProps({ background: this.normalizedColor(normalized) ?? normalized });
 		labelEl.setText(this.normalizedColor(normalized) ?? normalized);
 	}
 
@@ -2905,7 +2905,7 @@ export class SvgEditModal extends Modal {
 		marker.setAttribute('id', id);
 		marker.setAttribute('markerUnits', 'strokeWidth');
 		marker.setAttribute('orient', 'auto');
-		marker.setAttribute('style', 'pointer-events:none');
+		marker.setCssProps({ 'pointer-events': 'none' });
 		marker.setAttribute('se_type', markerType);
 		marker.setAttribute('viewBox', '0 0 100 100');
 		marker.setAttribute('markerWidth', '5');
@@ -3803,8 +3803,7 @@ export class SvgEditModal extends Modal {
 		const height = Math.max(this.canvasHostEl.clientHeight, this.canvasHeight * zoom * 3);
 		const canvasEl = this.canvasHostEl.querySelector<HTMLElement>('#svgcanvas');
 		if (canvasEl) {
-			canvasEl.style.width = `${width}px`;
-			canvasEl.style.height = `${height}px`;
+			canvasEl.setCssProps({ width: `${width}px`, height: `${height}px` });
 		}
 
 		const offset = this.canvas.updateCanvas(width, height);
@@ -3852,7 +3851,7 @@ export class SvgEditModal extends Modal {
 			}
 			const clone = child.cloneNode(true) as SVGElement;
 			clone.removeAttribute('id');
-			clone.style.pointerEvents = 'none';
+			clone.addClass('svg-edit-overview-clone');
 			this.overviewSvgEl?.appendChild(clone);
 		});
 
@@ -3877,8 +3876,10 @@ export class SvgEditModal extends Modal {
 		const left = this.canvasHostEl.scrollLeft / canvasEl.clientWidth * stageWidth;
 		const top = this.canvasHostEl.scrollTop / canvasEl.clientHeight * stageHeight;
 
-		this.overviewViewportEl.style.width = `${Math.min(stageWidth, viewportWidth)}px`;
-		this.overviewViewportEl.style.height = `${Math.min(stageHeight, viewportHeight)}px`;
+		this.overviewViewportEl.setCssProps({
+			width: `${Math.min(stageWidth, viewportWidth)}px`,
+			height: `${Math.min(stageHeight, viewportHeight)}px`
+		});
 		this.overviewViewportEl.style.transform = `translate(${Math.min(stageWidth - viewportWidth, Math.max(0, left))}px, ${Math.min(stageHeight - viewportHeight, Math.max(0, top))}px)`;
 	}
 
@@ -4118,7 +4119,7 @@ export class SvgEditModal extends Modal {
 		const fill = this.pickedStyle.fill && this.pickedStyle.fill !== 'none' ? this.pickedStyle.fill : 'transparent';
 		const stroke = this.pickedStyle.stroke && this.pickedStyle.stroke !== 'none' ? this.pickedStyle.stroke : '#111111';
 		const dash = this.pickedStyle['stroke-dasharray'] && this.pickedStyle['stroke-dasharray'] !== 'none' ? 'dotted' : 'solid';
-		this.eyedropperCursorEl.style.background = fill;
+		this.eyedropperCursorEl.setCssProps({ background: fill });
 		this.eyedropperCursorEl.style.borderColor = stroke;
 		this.eyedropperCursorEl.style.borderStyle = dash;
 		this.eyedropperCursorEl.style.opacity = this.pickedStyle.opacity ?? '1';
@@ -5181,7 +5182,7 @@ class SvgPaintModal extends Modal {
 		const newPreviewEl = previewColumnEl.createDiv({ cls: 'svg-paint-large-preview' });
 		previewColumnEl.createSpan({ cls: 'svg-paint-preview-caption', text: 'current' });
 		const currentPreviewEl = previewColumnEl.createDiv({ cls: 'svg-paint-large-preview' });
-		currentPreviewEl.style.background = this.initialOptions.type === 'none' ? 'transparent' : this.initialOptions.color;
+		currentPreviewEl.setCssProps({ background: this.initialOptions.type === 'none' ? 'transparent' : this.initialOptions.color });
 		currentPreviewEl.toggleClass('is-none', this.initialOptions.type === 'none');
 
 		const fieldsEl = layoutEl.createDiv({ cls: 'svg-paint-fields' });
@@ -5197,7 +5198,7 @@ class SvgPaintModal extends Modal {
 			const rgb = SvgPaintModal.hexToRgb(this.solidColor);
 			const hsv = SvgPaintModal.rgbToHsv(rgb.r, rgb.g, rgb.b);
 			const hueRgb = SvgPaintModal.hsvToRgb(hsv.h, 100, 100);
-			mapEl.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${SvgPaintModal.rgbToHex(hueRgb.r, hueRgb.g, hueRgb.b)})`;
+			mapEl.setCssProps({ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${SvgPaintModal.rgbToHex(hueRgb.r, hueRgb.g, hueRgb.b)})` });
 			hInput.value = String(hsv.h);
 			sInput.value = String(hsv.s);
 			vInput.value = String(hsv.v);
@@ -5206,7 +5207,7 @@ class SvgPaintModal extends Modal {
 			bInput.value = String(rgb.b);
 			aInput.value = String(this.solidOpacity);
 			hexInput.value = this.solidColor.replace('#', '');
-			newPreviewEl.style.background = this.activeType === 'none' ? 'transparent' : this.solidColor;
+			newPreviewEl.setCssProps({ background: this.activeType === 'none' ? 'transparent' : this.solidColor });
 			newPreviewEl.toggleClass('is-none', this.activeType === 'none');
 		};
 		const setColorFromHsv = (h: number, s: number, v: number) => {
@@ -5297,9 +5298,11 @@ class SvgPaintModal extends Modal {
 		});
 		this.renderGradientGeometryControls(controlsEl);
 		const updatePreview = () => {
-			previewEl.style.background = this.activeType === 'radialGradient'
-				? `radial-gradient(circle at ${this.radialCenterX * 100}% ${this.radialCenterY * 100}%, ${this.startColor}, ${this.endColor})`
-				: `linear-gradient(${Math.atan2(this.linearEndY - this.linearStartY, this.linearEndX - this.linearStartX) * 180 / Math.PI}deg, ${this.startColor}, ${this.endColor})`;
+			previewEl.setCssProps({
+				background: this.activeType === 'radialGradient'
+					? `radial-gradient(circle at ${this.radialCenterX * 100}% ${this.radialCenterY * 100}%, ${this.startColor}, ${this.endColor})`
+					: `linear-gradient(${Math.atan2(this.linearEndY - this.linearStartY, this.linearEndX - this.linearStartX) * 180 / Math.PI}deg, ${this.startColor}, ${this.endColor})`
+			});
 		};
 		formEl.addEventListener('input', updatePreview);
 		this.addQuickPalette(formEl, (color) => {
@@ -5377,7 +5380,7 @@ class SvgPaintModal extends Modal {
 					'aria-label': color === 'none' ? 'No Color' : color
 				}
 			});
-			swatchEl.style.backgroundColor = color === 'none' ? '#fff' : color;
+			swatchEl.setCssProps({ 'background-color': color === 'none' ? '#fff' : color });
 			swatchEl.toggleClass('is-none', color === 'none');
 			swatchEl.addEventListener('click', () => onPick(color));
 		});

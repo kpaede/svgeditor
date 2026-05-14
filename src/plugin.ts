@@ -233,7 +233,7 @@ class SvgEditorSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'SVG Editor' });
+		new Setting(containerEl).setName('SVG Editor').setHeading();
 
 		new Setting(containerEl)
 			.setName('Show inline edit button')

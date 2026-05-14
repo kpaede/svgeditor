@@ -866,6 +866,10 @@
 	pointer-events: none;
 }
 
+.svg-edit-overview-clone {
+	pointer-events: none;
+}
+
 .svg-edit-overview-viewport {
 	position: absolute;
 	inset: 0 auto auto 0;

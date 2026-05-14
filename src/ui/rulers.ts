@@ -103,15 +103,13 @@ export class Rulers {
 		if (isX) {
 			canvas.width = Math.ceil(totalLength);
 			canvas.height = 15;
-			canvas.style.width = `${Math.ceil(totalLength)}px`;
-			canvas.style.height = '15px';
-			(canvas.parentElement as HTMLElement).style.width = `${Math.ceil(totalLength)}px`;
+			canvas.setCssProps({ width: `${Math.ceil(totalLength)}px`, height: '15px' });
+			(canvas.parentElement as HTMLElement).setCssProps({ width: `${Math.ceil(totalLength)}px` });
 		} else {
 			canvas.width = 15;
 			canvas.height = Math.ceil(totalLength);
-			canvas.style.width = '15px';
-			canvas.style.height = `${Math.ceil(totalLength)}px`;
-			(canvas.parentElement as HTMLElement).style.height = `${Math.ceil(totalLength)}px`;
+			canvas.setCssProps({ width: '15px', height: `${Math.ceil(totalLength)}px` });
+			(canvas.parentElement as HTMLElement).setCssProps({ height: `${Math.ceil(totalLength)}px` });
 		}
 
 		const context = canvas.getContext('2d');
