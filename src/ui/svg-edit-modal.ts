@@ -3,6 +3,7 @@ import { App, Modal, Notice, TFile, setIcon } from 'obsidian';
 import { SVG_MIME_PLACEHOLDER } from '../svg/blank-svg';
 import { getSvgDimensions } from '../svg/dimensions';
 import { modeLabel } from '../svg/modes';
+import { SHAPE_LIBRARY_CATEGORIES, getShapeLibraryPath } from '../svg/shapelib';
 import { SvgCanvasWithExtras, SvgCanvasZoomBox } from '../svg/types';
 import { Rulers } from './rulers';
 
@@ -32,6 +33,50 @@ const GRID_UNIT_FACTORS: Record<string, number> = {
 };
 
 const GRID_INTERVALS = [0.01, 0.1, 1, 10, 100, 1000];
+const PALETTE_COLORS = [
+	'none',
+	'#000000',
+	'#3f3f3f',
+	'#7f7f7f',
+	'#bfbfbf',
+	'#ffffff',
+	'#ff0000',
+	'#ff7f00',
+	'#ffff00',
+	'#7fff00',
+	'#00ff00',
+	'#00ff7f',
+	'#00ffff',
+	'#007fff',
+	'#0000ff',
+	'#7f00ff',
+	'#ff00ff',
+	'#ff007f',
+	'#7f0000',
+	'#7f3f00',
+	'#7f7f00',
+	'#3f7f00',
+	'#007f00',
+	'#007f3f',
+	'#007f7f',
+	'#003f7f',
+	'#00007f',
+	'#3f007f',
+	'#7f007f',
+	'#7f003f',
+	'#ffaaaa',
+	'#ffd4aa',
+	'#ffffaa',
+	'#d4ffaa',
+	'#aaffaa',
+	'#aaffd4',
+	'#aaffff',
+	'#aad4ff',
+	'#aaaaff',
+	'#d4aaff',
+	'#ffaaff',
+	'#ffaad4'
+];
 
 const BASIC_SHAPE_PATHS: Record<string, string> = {
 	heart: 'm150,73c61,-175 300,0 0,225c-300,-225 -61,-400 0,-225z',
@@ -62,7 +107,34 @@ const BASIC_SHAPE_PATHS: Record<string, string> = {
 	math_divide: 'm150,0.99785l0,0c25.17819,0 45.58916,20.41097 45.58916,45.58916c0,25.17821 -20.41096,45.58916 -45.58916,45.58916c-25.17822,0 -45.58916,-20.41093 -45.58916,-45.58916c0,-25.1782 20.41093,-45.58916 45.58916,-45.58916zm0,296.25203c-25.17822,0 -45.58916,-20.41095 -45.58916,-45.58917c0,-25.17819 20.41093,-45.58916 45.58916,-45.58916c25.17819,0 45.58916,20.41096 45.58916,45.58916c0,25.17822 -20.41096,45.58917 -45.58916,45.58917zm-134.06754,-193.71518l268.13507,0l0,91.17833l-268.13507,0z',
 	object_bolt: 'm178.14388,74.00616l-108.49727,68.79685l107.15599,23.63498l-99.04335,73.85934l-39.98779,-12.47227l28.36194,71.19228l112.7131,-31.06076l-47.58928,-12.98325l129.22581,-106.08589l-118.12698,-19.22734l114.07071,-71.6874l-65.0681,-10.76349l70.86891,-45.56109l-26.03423,-0.65478l-109.97452,62.50492l51.92505,10.50792z',
 	object_drop: 'm115.15536,295.759c-42.01334,-15.78687 -72.12711,-65.94934 -65.28346,-108.74701c4.3154,-26.98718 95.35947,-190.81818 103.3105,-185.90417c2.59511,1.60386 25.68835,39.79974 51.31831,84.87975c41.0565,72.21342 46.5999,85.67899 46.5999,113.19665c0,55.77716 -44.6394,101.46498 -98.23825,100.54555c-15.6409,-0.26834 -32.60906,-2.05518 -37.707,-3.97076zm42.09262,-28.05386c1.39066,-7.22116 -1.85785,-10.74289 -9.90955,-10.74289c-18.35065,0 -43.80598,-23.24161 -49.49309,-45.18889c-6.0666,-23.41179 -22.15186,-26.19615 -24.52774,-4.24574c-4.57746,42.29059 76.21872,100.22086 83.93037,60.17752z',
-	object_sun: 'm238.69324,135.65587c0,46.60593 -40.30034,84.38748 -90.01332,84.38748c-49.71299,0 -90.01332,-37.78156 -90.01332,-84.38748c0,-46.6059 40.30033,-84.38747 90.01332,-84.38747c49.71298,0 90.01332,37.78154 90.01332,84.38747zm-7.30318,120.56636c-4.20586,5.25757 -51.12886,-47.27794 -57.30507,-44.69331c-6.17622,2.58458 -15.51068,86.52086 -22.0425,87.47173c-6.53188,0.9509 -17.76118,-85.09837 -24.12714,-87.15329c-6.36602,-2.05495 -43.23042,49.74286 -48.75608,45.85272c-5.52563,-3.89009 13.12091,-67.11951 10.04803,-73.73549c-3.07288,-6.61595 -73.34953,-9.72229 -74.79697,-17.10284c-1.44742,-7.38055 63.69369,-26.7453 64.2322,-34.0554c0.53854,-7.31011 -43.73452,-48.6129 -41.1993,-55.02096c2.53526,-6.40806 61.81988,21.03078 65.82475,15.40928c4.00487,-5.62149 -7.80805,-76.34053 -1.73039,-78.4587c6.07763,-2.11818 42.59449,47.54089 49.0827,47.30339c6.48817,-0.23753 26.02002,-62.46352 32.64861,-61.00949c6.62865,1.45401 3.32251,66.01247 8.45366,70.32287c5.13113,4.31043 55.87381,-16.15842 59.63792,-10.29998c3.76414,5.85843 -29.09575,62.86814 -27.11681,69.62658c1.97902,6.75845 62.18188,13.20758 61.3595,20.19514c-0.82245,6.98758 -75.2742,9.96732 -78.37666,16.73535c-3.10245,6.76802 28.36942,83.35484 24.16354,88.6124z'
+	object_sun: 'm238.69324,135.65587c0,46.60593 -40.30034,84.38748 -90.01332,84.38748c-49.71299,0 -90.01332,-37.78156 -90.01332,-84.38748c0,-46.6059 40.30033,-84.38747 90.01332,-84.38747c49.71298,0 90.01332,37.78154 90.01332,84.38747zm-7.30318,120.56636c-4.20586,5.25757 -51.12886,-47.27794 -57.30507,-44.69331c-6.17622,2.58458 -15.51068,86.52086 -22.0425,87.47173c-6.53188,0.9509 -17.76118,-85.09837 -24.12714,-87.15329c-6.36602,-2.05495 -43.23042,49.74286 -48.75608,45.85272c-5.52563,-3.89009 13.12091,-67.11951 10.04803,-73.73549c-3.07288,-6.61595 -73.34953,-9.72229 -74.79697,-17.10284c-1.44742,-7.38055 63.69369,-26.7453 64.2322,-34.0554c0.53854,-7.31011 -43.73452,-48.6129 -41.1993,-55.02096c2.53526,-6.40806 61.81988,21.03078 65.82475,15.40928c4.00487,-5.62149 -7.80805,-76.34053 -1.73039,-78.4587c6.07763,-2.11818 42.59449,47.54089 49.0827,47.30339c6.48817,-0.23753 26.02002,-62.46352 32.64861,-61.00949c6.62865,1.45401 3.32251,66.01247 8.45366,70.32287c5.13113,4.31043 55.87381,-16.15842 59.63792,-10.29998c3.76414,5.85843 -29.09575,62.86814 -27.11681,69.62658c1.97902,6.75845 62.18188,13.20758 61.3595,20.19514c-0.82245,6.98758 -75.2742,9.96732 -78.37666,16.73535c-3.10245,6.76802 28.36942,83.35484 24.16354,88.6124z',
+	electronics_resistor: 'm7.868202,151.620193l82.343018,0l11.393402,-32.392784l18.643684,62.356071l20.71521,-63.165901l18.12587,62.356071l19.679459,-61.546242l19.679443,61.951149l10.875488,-30.368195l82.860886,0m-291.18655,-2.813812l6.844604,0l0,6.844635l-6.844604,0l0,-6.844635zm291.194058,-0.465622l6.844604,0l0,6.844635l-6.844604,0l0,-6.844635z',
+	electronics_capacitor: 'm292.103577,149.999374l-117.073944,-0.445328m-167.175035,0.445328l116.628588,0m0.44532,-72.035179l11.364601,0l0,144.640358l-11.364601,0l0,-144.640358zm38.244209,-0.569977l11.364594,0l0,144.640297l-11.364594,0l0,-144.640297zm-162.171733,68.98156l6.905184,0l0,6.905212l-6.905184,0l0,-6.905212zm291.101741,0.325241l6.905182,0l0,6.905212l-6.905182,0l0,-6.905212z',
+	electronics_diode: 'm180.228439,90.39769l21.70816,0l0,117.211075l-21.70816,0l0,-117.211075zm23.345947,59.602753l88.556381,0m-284.3409,-1.995804l85.541058,0l0,-65.011185l87.251961,66.722031l-87.250778,67.291931l0,-68.720001m-92.331572,-3.917542l6.811423,0l0,6.811447l-6.811423,0l0,-6.811447zm291.20439,2.03891l6.811401,0l0,6.811462l-6.811401,0l0,-6.811462z',
+	electronics_speaker: 'm21.35352,187l77,0m-83.70878,3.11937l0,-6.71786l6.71793,0l0,6.71786l-6.71793,0zm6.70878,-76.11937l77,0m-83.70878,3.11937l0,-6.71786l6.71793,0l0,6.71786l-6.71793,0zm155.70878,-32.61937l115,-83l0,296.5l-115,-82.5l0,-131zm-70.99999,0l70.99999,0l0,131l-70.99999,0l0,-131z',
+	game_club: 'm107.57338,275.50809c15.10838,-15.77673 27.93053,-34.56763 33.34637,-55.90254c-16.19595,12.31328 -31.05006,32.11845 -53.64258,31.36813c-17.05595,0.97891 -37.37346,0.99548 -49.37947,-13.26945c-26.83,-21.5751 -34.03729,-64.69673 -12.00568,-92.15404c15.07669,-19.82526 41.4039,-28.23172 65.56467,-25.25816c15.22319,-6.45935 -2.97749,-22.81502 -4.80785,-33.02267c-11.33012,-37.02704 15.36169,-81.44029 54.60988,-85.70572c28.15103,-4.0415 55.67099,14.18231 69.44571,37.83293c7.4856,16.54877 3.58533,35.33045 1.83887,52.49866c-5.88113,8.62766 -20.94342,29.50022 0.55099,27.85616c21.2518,-0.33633 43.69397,5.90277 57.70761,22.8026c20.49747,22.76067 22.37766,60.37286 1.7551,83.63007c-10.90869,14.16582 -27.2782,25.50356 -45.80551,24.87234c-18.13391,1.83067 -37.77023,-2.10338 -50.62924,-15.92061c-5.48438,-3.84309 -18.92297,-18.36311 -18.91833,-15.17883c13.43222,27.98354 28.62112,57.04413 55.49167,74.38477c9.60062,7.71954 -14.62323,2.41226 -20.4874,3.98563c-35.53012,0.0314 -71.06009,0.06342 -106.59021,0.09497c7.31842,-7.63818 14.6373,-15.27603 21.9554,-22.91422z',
+	game_diamond: 'm34.92883,153.9321c25.56111,-56.62673 71.64644,-104.95768 110.85236,-152.92286c45.60773,30.78102 85.01025,98.49872 119.29071,145.66264c-30.57587,54.55344 -74.58923,104.23671 -114.23947,153.1615c-42.74368,-44.7616 -79.29648,-95.90262 -115.90359,-145.90128z',
+	game_heart: 'm106.76112,245.09012c-77.74644,-57.80281 -105.54389,-94.36783 -105.76917,-139.13003c-0.20544,-40.80623 34.10907,-80.19025 69.67002,-79.96313c17.75755,0.11364 55.84863,15.13257 69.33681,27.33919c6.79614,6.1504 10.01512,5.54391 25.146,-4.73779c41.17987,-27.98239 81.39243,-28.56973 107.43585,-1.56907c41.62292,43.15273 34.04501,94.68497 -21.78392,148.13782c-29.68187,28.41864 -94.50056,78.8349 -101.35565,78.8349c-2.08591,0 -21.29187,-13.01038 -42.67994,-28.9119z',
+	game_spade: 'm92.84135,287.13989c18.3756,-17.73279 31.81261,-40.18849 43.07161,-62.94162c6.87787,-9.075 0.36623,-17.01425 -9.00183,-9.3188c-24.07579,16.07495 -56.84848,21.58751 -82.91551,6.92194c-29.46779,-15.23779 -42.75618,-51.47162 -36.07021,-83.04361c4.23415,-31.99545 27.52112,-57.07481 52.80524,-75.08997c29.04437,-20.7771 60.40868,-38.61331 86.95355,-62.67224c11.08365,0.22219 19.42508,17.61496 31.35349,22.21747c31.67316,23.59131 69.20874,40.95643 94.15042,72.50237c12.60098,17.9752 19.78281,40.10946 20.58459,61.98948c-3.83926,29.67093 -21.5314,60.96272 -52.04169,69.41241c-26.37521,7.98038 -53.51129,-2.14038 -76.49545,-15.01619c-2.80743,-0.60251 -13.10471,-8.7151 -9.02362,-2.41039c13.74066,28.19803 28.79581,56.19804 50.59952,79.09325c1.28156,2.89285 11.33243,9.75613 5.98334,9.64709c-44.76935,0 -89.53856,0 -134.30794,0c4.78471,-3.7637 9.5696,-7.5275 14.35449,-11.2912z',
+	music_treble: 'm142.57787,298.08936c-19.93291,-3.16858 -30.69543,-32.78793 -10.77837,-43.63799c20.76305,-10.6983 33.11169,27.38725 10.4319,31.10985c-12.41878,4.65247 16.12379,12.44363 21.44362,4.62054c16.62259,-8.04572 14.05481,-28.98639 10.0555,-43.73428c-1.38792,-11.29834 -3.1236,-23.3942 -17.37872,-16.97299c-34.39165,2.76706 -61.61951,-32.12309 -58.88461,-64.7627c0.92851,-30.78641 26.14601,-51.87253 44.81895,-73.25146c-6.13037,-27.96899 -7.98138,-60.28084 9.78998,-84.65368c16.36949,-19.81244 24.67825,16.44271 27.44722,28.74505c6.15059,28.7567 -6.11317,58.97542 -26.51985,79.24646c1.94853,9.61536 3.86572,19.23715 5.85146,28.84491c21.56471,-4.16351 42.14922,14.0585 43.32542,35.40215c3.33209,19.27364 -9.02991,37.47516 -25.91515,45.75842c-0.27765,16.55051 8.86742,33.71834 5.58147,50.80913c-3.15567,17.67035 -22.97263,26.33539 -39.26881,22.47659z',
+	music_note: 'm92.11929,299.44888c-12.88673,-2.17523 -24.85642,-14.0065 -22.42534,-27.8176c1.23042,-15.16177 13.28207,-27.36446 25.40788,-35.40434c16.13786,-10.9864 38.20284,-15.06764 55.98708,-5.59207c1.04205,-76.42476 0.44817,-152.86866 0.60602,-229.30206c11.21484,-2.71548 7.58873,11.96767 10.1358,18.75797c2.43044,19.96716 15.82285,35.63469 29.15343,49.62502c16.53877,17.58521 34.10059,36.23084 39.47629,60.59399c5.87012,28.26657 -3.51422,57.18356 -15.69261,82.51581c-0.88187,8.11874 -15.77403,19.86469 -8.67888,5.1937c11.94699,-25.09727 21.81674,-54.00095 13.66216,-81.79225c-7.76553,-27.73048 -31.97011,-50.88958 -60.78398,-55.04219c-0.18622,58.55498 0.45346,117.12103 -0.68288,175.66663c-2.83272,17.24548 -17.81155,30.04147 -32.83268,37.34811c-10.35778,4.50974 -22.04797,7.23831 -33.33228,5.2493z',
+	symbol_globe: 'm33.11721,223.16701l233.44794,0.08913l-7.57544,11.19618l-218.20762,-0.26738l-7.66489,-11.01793zm1.60428,-148.93458l230.3285,-0.26738l6.68439,11.48557l-243.78651,0.08913l6.77362,-11.30732zm-22.73061,74.62911l275.61135,-0.26738l-0.35626,11.48558l-275.07684,-0.17825l-0.17825,-11.03995zm275.8395,1.06528c0,76.03723 -61.86858,137.89429 -137.92784,137.89429c-76.0264,0 -137.88345,-61.86824 -137.88345,-137.89429c0,-76.02642 61.86823,-137.88347 137.88345,-137.88347c76.05927,-0.01117 137.92784,61.85705 137.92784,137.88347z',
+	symbol_yin_yang: 'm152.3828,1.00127c40.96666,0 74.20116,33.2665 74.20116,74.23316c0,40.96668 -33.2345,74.20117 -74.20116,74.20117c-40.96668,0 -74.20118,33.26653 -74.20118,74.23318c0,40.96667 33.2345,74.20117 74.20118,74.20117c81.93332,0 148.43431,-66.50104 148.43431,-148.43436c0,-81.93333 -66.50099,-148.43433 -148.43431,-148.43433zm0,51.0353c-12.80867,0 -23.19788,10.38917 -23.19788,23.19786c0,12.80871 10.38918,23.19786 23.19788,23.19786c12.80869,0 23.19785,-10.38917 23.19785,-23.19786c0,-12.80869 -10.38916,-23.19786 -23.19785,-23.19786zm0,148.43436c12.80206,0 23.19785,10.39577 23.19785,23.19786c0,12.80206 -10.39578,23.19788 -23.19785,23.19788c-12.80208,0 -23.19788,-10.39581 -23.19788,-23.19788c0,-12.80206 10.3958,-23.19786 23.19788,-23.19786zm145.10503,-50.94075c0,81.87245 -66.37071,148.24319 -148.24321,148.24319c-81.87246,0 -148.24321,-66.37074 -148.24321,-148.24319c0,-81.87248 66.37075,-148.24324 148.24321,-148.24324c81.8725,0 148.24321,66.37076 148.24321,148.24324z',
+	arrow_right: 'm0.99679,148.19614c0.277,-34.75176 -0.17724,-69.54997 2.27791,-104.24061c60.32762,11.41171 119.94372,30.08407 179.25477,46.87597c3.18407,-17.04019 1.68541,-31.17523 4.4519,-46.93008c38.1039,33.15254 75.86421,66.77718 112.07695,102.003c-34.74261,39.95821 -74.59364,74.65916 -113.71667,110.1933c-1.26689,-16.54773 -2.53401,-33.09534 -3.80092,-49.64307c-57.66159,16.00916 -118.64064,32.56108 -176.67504,47.19652c-3.94662,-33.77068 -3.83062,-70.54794 -3.8689,-105.45503z',
+	arrow_left_right: 'm0.99835,150.00092l86.49609,-86.49651l0,43.24814l125.35546,0l0,-43.24814l86.49605,86.49651l-86.49605,86.49605l0,-43.24803l-125.35546,0l0,43.24803l-86.49609,-86.49605z',
+	arrow_u_turn: 'm1.00059,299.00055l0,-167.62497l0,0c0,-72.00411 58.37087,-130.37499 130.375,-130.37499l0,0l0,0c34.57759,0 67.73898,13.7359 92.18906,38.18595c24.45006,24.45005 38.18593,57.61144 38.18593,92.18904l0,18.625l37.24997,0l-74.49995,74.50002l-74.50002,-74.50002l37.25,0l0,-18.625c0,-30.8589 -25.0161,-55.87498 -55.87498,-55.87498l0,0l0,0c-30.85892,0 -55.875,25.01608 -55.875,55.87498l0,167.62497z',
+	arrow_chevron: 'm0.99844,0.99688l223.49919,0l74.49986,149.00068l-74.49986,149.00134l-223.49919,0l74.49984,-149.00134l-74.49984,-149.00068z',
+	arrow_callout: 'm0.99757,0.99642l193.63145,0l0,111.75l53.81497,0l0,-37.25l50.55357,74.49999l-50.55357,74.50003l0,-37.25002l-53.81497,0l0,111.75l-193.63145,0z',
+	animal_bat: 'm143.40468,206.20782c-0.49527,-8.51843 -1.60919,-23.17813 -13.91826,-16.10698c-5.69614,2.11977 -22.79842,7.51244 -14.5293,-3.62979c-4.53243,-11.10219 -22.97476,5.42294 -24.24419,-2.29205c9.91943,-10.64906 -4.7813,-22.35199 -15.17139,-14.80321c-6.39341,1.76166 -19.4276,12.91188 -21.9789,9.37552c5.93793,-7.52516 19.31312,-22.93167 3.18112,-27.55084c-17.5302,-3.97589 -32.93319,8.09392 -48.1771,14.68205c-4.57452,3.57106 -10.39707,2.94862 -4.70683,-2.99597c19.7419,-30.64111 50.72646,-53.70857 85.10566,-65.43076c8.33369,-2.70812 21.16511,-8.70424 21.41656,4.97536c5.15313,12.59007 8.81947,28.33097 22.08977,34.80917c15.28362,8.49702 4.32793,-24.52711 20.16156,-12.05241c6.66379,4.32207 20.92268,-3.91697 22.87737,0.71265c-3.88257,5.55579 -5.70456,15.41883 4.55382,10.3489c17.81406,-7.0078 30.89859,-22.70471 39.67026,-39.22318c9.16278,-1.3768 18.27335,5.56162 26.62798,9.24753c27.74529,15.70954 44.86571,45.39448 52.13728,75.65768c-7.5513,-4.24557 -14.87186,-12.828 -24.02185,-16.20273c-9.75534,-4.87419 -20.75789,-5.73363 -31.48114,-5.39867c-5.02554,5.98985 -7.99353,13.42558 -3.62529,20.86708c3.80284,14.25407 -12.13176,-4.90576 -17.88498,-6.20744c-10.74191,-7.67955 -21.03323,3.92213 -18.67635,14.82222c-2.42909,2.10051 -9.92085,-3.5218 -14.32263,-2.86926c-9.05026,-2.72606 -15.42468,1.20085 -9.97261,10.61331c-7.98315,-0.97417 -19.64474,-13.28291 -26.70493,-1.69363c-3.0779,2.89514 -4.66377,8.66307 -8.40561,10.34547z',
+	animal_cat: 'm111.55353,268.57376c-12.38409,-9.66019 -26.54234,-3.66064 -40.17431,-4.38614c-11.9392,-10.23105 -26.45395,2.16507 -37.70551,-7.68756c-14.55057,-12.97847 10.67308,-21.10451 5.29292,-36.51207c-0.60409,-22.18257 -10.10326,-42.27484 -20.08909,-60.91698c-7.07184,-14.82233 -4.56518,-31.85568 -6.84103,-47.71686c-8.17014,-11.38815 -16.33076,-25.48726 -6.60928,-39.55753c10.981,-11.86565 5.81937,-27.47561 1.50418,-41.19728c11.10318,3.26597 23.84772,18.14071 38.4552,15.16287c9.93419,-6.39761 15.9648,-0.073 17.62218,11.6365c5.20781,15.03792 8.24681,35.60265 24.68163,40.4529c17.26196,4.92876 36.58965,6.02341 50.24171,20.484c24.96439,23.38795 36.53986,60.25828 35.56061,95.79604c2.26117,16.61917 23.11539,7.79897 33.43477,10.24997c17.3054,-0.76804 33.91818,4.66769 50.66774,8.39909c14.94962,3.97684 27.61282,-8.59756 41.65988,-10.10515c2.37341,14.53128 -16.06888,20.58582 -26.14133,25.0639c-11.95706,5.08662 -24.89989,5.20694 -37.1826,1.47655c-26.55344,-6.62021 -54.69701,-4.88251 -79.92953,6.75992c-13.61838,5.01505 -26.84254,14.51093 -41.6569,13.32327l-2.79124,-0.72549l0,0.00003z',
+	animal_fish: 'm127.20683,242.3436c1.50244,-15.94504 5.02446,-32.41927 12.88557,-46.10178c7.51215,-8.98547 19.63693,-8.71681 29.76314,-11.79086c-14.18819,-3.80443 -27.43222,-10.54059 -40.42705,-17.66788c-21.27006,-9.23157 -42.92073,4.06975 -62.09324,13.40138c-14.23518,6.80144 -28.31641,14.82532 -43.64474,18.1933c-10.05519,-6.98578 -1.65744,-26.80461 5.41335,-35.17271c8.9525,-11.55655 22.2043,-17.52696 31.90982,-28.07993c4.26963,-14.90575 -15.40321,-18.57297 -24.24153,-24.42971c-13.70577,-6.20512 -25.35116,-16.36843 -35.77064,-27.71589c24.19748,-1.40994 45.60231,13.61476 67.43612,22.73716c11.80957,4.27464 22.94788,10.28683 33.98999,16.23396c5.06265,-0.02556 22.24189,3.73252 20.52978,-2.03984c-12.8773,-0.57095 -11.58655,-17.22836 -2.92075,-23.83247c12.73701,-10.02242 28.26479,-15.93932 38.86842,-29.21478c4.65193,-3.7341 7.09996,-12.86792 11.03157,-15.74994c16.95282,13.24852 26.87143,34.14735 36.22475,53.96581c15.23062,3.44089 30.61246,6.23184 46.13637,7.07419c15.15991,6.93107 28.10406,19.01068 39.97369,31.27808c8.99451,6.78525 11.39157,25.24843 -0.83481,28.95241c-30.16479,16.24658 -63.84666,21.21309 -97.06413,22.77441c-4.67992,-0.32996 -8.75485,0.18372 -8.78621,6.33609c-2.92581,8.76227 -4.12184,18.94467 -9.62984,26.07907c-6.07878,-1.55455 -0.31998,-19.45975 -6.56294,-10.95245c-12.27982,13.32922 -27.04962,23.32567 -42.18671,32.26515c0,-2.18091 -0.00002,-4.36198 0.00002,-6.54276z',
+	animal_hare: 'm95.22337,299.53546c-10.68459,-4.81824 3.25798,-14.45154 8.53654,-18.71286c3.55556,-3.28177 -20.37717,0.46036 -10.27298,-10.93198c11.08577,-9.30692 6.89815,-25.05217 -4.18282,-32.37115c-15.24973,-10.2968 -34.81611,-19.10942 -40.44992,-38.33635c-5.69662,-11.9756 7.81301,-24.58835 -0.87631,-35.40263c-6.99412,-14.0412 1.177,-28.68323 6.25594,-41.69022c2.33568,-17.99253 -11.97227,-32.2212 -19.84076,-47.00306c-9.74298,-14.12588 -15.35928,-30.58578 -16.16633,-47.73895c-2.11884,-7.3217 0.22601,-18.6921 8.68694,-8.82097c17.71845,14.18765 37.17033,27.65002 49.57116,47.06949c2.34735,7.01447 11.74658,27.34441 12.27144,8.93449c0.24582,-25.30315 7.97399,-52.90002 27.77682,-69.85634c13.46954,-12.2734 20.73361,9.21683 21.36209,20.13735c3.50587,21.487 -2.30553,42.79486 -8.78146,63.09225c-2.37738,9.43285 -8.56868,35.2823 9.08899,25.75117c40.67693,-15.70451 89.96005,0.78945 116.45525,34.52606c12.17961,16.33485 17.5135,37.32133 17.39308,57.47189c-6.27155,11.83836 17.03061,-0.22177 8.58704,13.43613c-4.97064,15.1297 -19.01465,23.33925 -28.85207,34.75906c-10.01038,9.15085 -2.58298,28.71576 -19.13725,31.59863c-24.15469,7.44629 -49.5191,10.70804 -74.66498,12.6066c-14.07156,2.88287 -20.90056,-13.20758 -7.41347,-19.89679c6.46608,-9.96799 24.96535,-10.66653 30.46185,-12.24564c-13.13484,1.28516 -29.33337,-4.0759 -40.40141,4.05872c-6.70294,10.88138 -12.07141,25.20364 -26.12755,28.30951c-6.3168,1.75439 -12.8116,3.16129 -19.27982,1.25558z',
+	misc_cube: 'm30.42785,1.56129l-29.42785,29.42785l0,268.21907l264.28937,0.68124l33.35693,-30.10974l0,-268.21843l-268.21845,0zm236.46521,28.94674l0,269.42122m0,-269.42122l33.35693,-29.50804m-33.35693,30.791l-265.57233,-1.28296',
+	misc_moon: 'm227,299.94119l0,0c-85.05185,0 -154,-66.92029 -154,-149.4706c0,-82.55034 68.94815,-149.4706 154,-149.4706l0,0c-48.47263,35.28521 -77,90.6619 -77,149.4706c0,58.80869 28.52737,114.18535 77,149.4706z',
+	misc_sign_no: 'm0.99794,149.99951l0,0c0,-82.29002 66.70967,-148.99969 148.99992,-148.99969l0,0c39.51779,0 77.41692,15.69819 105.35898,43.64116c27.94318,27.94297 43.64124,65.84185 43.64124,105.35853l0,0c0,82.29103 -66.7092,149.00024 -149.00021,149.00024l0,0c-82.29025,0 -148.99992,-66.70921 -148.99992,-149.00024zm240.6012,66.65504l0,0c32.80489,-45.08388 27.92851,-107.33437 -11.49672,-146.75905c-39.42525,-39.42501 -101.67574,-44.30139 -146.75847,-11.49616l158.25519,158.25521zm-183.20167,-133.30872c-32.80512,45.08364 -27.92886,107.33413 11.49615,146.75825c39.4249,39.42525 101.67541,44.30159 146.75814,11.49672l-158.2543,-158.25497z',
+	misc_star_32: 'm1,150l37.78866,-10.95375l-34.9264,-18.11479l39.19976,-3.37057l-30.72019,-24.58047l39.1037,4.34019l-25.33452,-30.10049l37.5051,11.88636l-18.97492,-34.46539l34.46528,18.97503l-11.88614,-37.50511l30.10025,25.33441l-4.34019,-39.10359l24.58048,30.72008l3.37057,-39.19964l18.11479,34.92639l10.95375,-37.78866l10.95375,37.78866l18.11479,-34.92639l3.37057,39.19964l24.58047,-30.72008l-4.34018,39.10359l30.10023,-25.33441l-11.88614,37.50511l34.4653,-18.97503l-18.97491,34.46539l37.50508,-11.88636l-25.33452,30.10049l39.10347,-4.34019l-30.71994,24.58047l39.1994,3.37057l-34.92581,18.11479l37.78842,10.95375l-37.78842,10.95375l34.92581,18.11479l-39.1994,3.37057l30.71994,24.58047l-39.10347,-4.34018l25.33452,30.10025l-37.50508,-11.88615l18.97491,34.4653l-34.4653,-18.97493l11.88614,37.5051l-30.10023,-25.33452l4.34018,39.10347l-24.58047,-30.71994l-3.37057,39.1994l-18.11479,-34.92581l-10.95375,37.78842l-10.95375,-37.78842l-18.11479,34.92581l-3.37057,-39.1994l-24.58048,30.71994l4.34019,-39.10347l-30.10025,25.33452l11.88614,-37.5051l-34.46528,18.97493l18.97492,-34.4653l-37.5051,11.88615l25.33452,-30.10025l-39.1037,4.34018l30.72019,-24.58047l-39.19976,-3.37057l34.9264,-18.11479l-37.78866,-10.95375z',
+	misc_page: 'm249.3298,298.99744l9.9335,-39.73413l39.73413,-9.93355l-49.66763,49.66768l-248.33237,0l0,-298.00001l298.00001,0l0,248.33234',
+	misc_hand_stop: 'm136.25574,297.49808c-29.33714,-5.08954 -54.45634,-27.86633 -62.06976,-56.71431c-3.62096,-14.72525 -1.50079,-30.17319 -2.21442,-45.21799c-0.13461,-38.62221 -0.20337,-77.24464 -0.30453,-115.86696c3.44471,-11.98872 17.98409,-18.29414 29.04424,-12.36688c0.96214,-3.14931 0.25692,-8.79729 0.59418,-12.8885c-1.96137,-11.24498 6.05913,-22.68389 17.70836,-23.44487c6.68523,-0.04347 14.68906,5.03699 11.64235,-6.21321c-2.06573,-11.58701 7.02885,-24.78486 19.46753,-23.71677c11.8866,-1.10308 20.91313,10.99307 19.47894,22.20545c0.55293,6.69356 15.04739,-4.38583 20.11427,3.0555c6.46245,3.83537 10.88301,11.15349 9.66263,18.71955c0.37462,20.72639 -0.50464,41.58417 0.94255,62.21075c10.62856,-5.38028 25.7729,1.23052 27.94981,13.06696c-0.24077,36.77421 0.61372,73.57438 -0.64664,110.32743c-4.27835,37.80429 -40.23309,69.77301 -78.61711,67.50256c-4.25351,0.01132 -8.54422,0.05313 -12.75241,-0.65872zm26.24695,-10.04156c32.22029,-5.44516 57.56776,-36.59567 55.75252,-69.35173c0.24638,-31.65953 1.24834,-63.36566 0.07516,-95.00381c-0.74966,-11.56753 -19.92574,-8.76712 -18.68594,1.90652c-0.00584,23.46449 -0.01172,46.92897 -0.01762,70.39346c-5.97046,6.15695 -16.65688,2.44864 -23.81619,7.45261c-15.91585,6.94403 -26.02902,23.94809 -26.37592,41.0688c-8.5842,13.31046 -12.47054,-8.35147 -7.54663,-15.48785c5.69263,-21.52615 25.72418,-37.58736 47.72688,-39.6965c-0.18001,-49.52237 0.46608,-99.06258 -0.57811,-148.57061c-6.22968,-14.02401 -23.68619,-1.72364 -19.04016,10.55674c-0.45773,37.44105 -0.04761,74.89084 -0.68825,112.32923c-4.16106,6.65674 -12.04573,0.3437 -9.47389,-5.79948c-0.17776,-46.90031 -0.35556,-93.80062 -0.53333,-140.70093c-3.33864,-8.28292 -18.12991,-6.98883 -18.3627,2.10197c-0.18286,48.40011 -0.36572,96.80021 -0.5486,145.20032c-3.89212,5.48285 -11.88664,0.71593 -9.73376,-5.26897c-0.14377,-36.45805 0.40013,-72.93186 -0.55034,-109.37686c-0.24316,-10.84745 -18.40633,-10.5788 -18.64873,-0.51889c-0.36327,37.37112 0.09734,74.76224 -0.99649,112.11712c1.02982,9.51479 -12.37218,4.97615 -9.28424,-2.22137c-0.16375,-25.39479 0.44627,-50.81747 -0.58949,-76.18918c-6.1088,-15.65501 -24.37704,-2.73073 -19.28278,10.2811c0.06127,45.03139 -0.41048,90.08521 0.72834,135.10263c2.79378,34.58762 36.09247,63.06729 70.73276,60.79437c3.26721,-0.13614 6.52469,-0.50925 9.73752,-1.11868z'
 };
 
 export class SvgEditModal extends Modal {
@@ -102,6 +174,7 @@ export class SvgEditModal extends Modal {
 	private polystarInputs = new Map<string, HTMLInputElement>();
 	private linkPanelEl: HTMLElement | null = null;
 	private linkInputEl: HTMLInputElement | null = null;
+	private imageUrlInputEl: HTMLInputElement | null = null;
 	private groupTitlePanelEl: HTMLElement | null = null;
 	private groupTitleInputEl: HTMLInputElement | null = null;
 	private unlinkUseButtonEl: HTMLButtonElement | null = null;
@@ -121,9 +194,16 @@ export class SvgEditModal extends Modal {
 	private contextMenuEl: HTMLElement | null = null;
 	private undoButtonEl: HTMLButtonElement | null = null;
 	private redoButtonEl: HTMLButtonElement | null = null;
+	private zoomInputEl: HTMLInputElement | null = null;
+	private strokeWidthInputEl: HTMLInputElement | null = null;
+	private strokeStyleSelectEl: HTMLSelectElement | null = null;
+	private strokeJoinSelectEl: HTMLSelectElement | null = null;
+	private strokeCapSelectEl: HTMLSelectElement | null = null;
+	private opacityInputEl: HTMLInputElement | null = null;
 	private layerPanelVisible = false;
 	private layerViewActive = false;
 	private pickedStyle: PickedStyle | null = null;
+	private eyedropperCursorEl: HTMLElement | null = null;
 	private zoomPointerDown: { x: number; y: number } | null = null;
 	private panPointerDown: { x: number; y: number; scrollLeft: number; scrollTop: number; previousMode: string } | null = null;
 	private spacePanPreviousMode: string | null = null;
@@ -134,11 +214,12 @@ export class SvgEditModal extends Modal {
 	private workareaMouseDownHandler = (event: MouseEvent) => this.handleWorkareaMouseDown(event);
 	private workareaMouseUpHandler = (event: MouseEvent) => this.handleWorkareaMouseUp(event);
 	private workareaMouseMoveHandler = (event: MouseEvent) => this.handleWorkareaMouseMove(event);
-	private workareaScrollHandler = () => this.updateOverviewViewport();
+	private workareaScrollHandler = () => this.handleWorkareaScroll();
 	private workareaContextMenuHandler = (event: MouseEvent) => this.handleWorkareaContextMenu(event);
 	private workareaDragOverHandler = (event: DragEvent) => this.handleWorkareaDragOver(event);
 	private workareaDropHandler = (event: DragEvent) => this.handleWorkareaDrop(event);
 	private contextMenuClickAwayHandler = (event: MouseEvent) => this.handleContextMenuClickAway(event);
+	private contextMenuPointerAwayHandler = (event: PointerEvent) => this.handleContextMenuClickAway(event);
 	private windowMouseUpHandler = (event: MouseEvent) => this.handleWindowMouseUp(event);
 
 	constructor(app: App, file: TFile, fallbackSvg = SVG_MIME_PLACEHOLDER) {
@@ -158,7 +239,9 @@ export class SvgEditModal extends Modal {
 		window.addEventListener('keyup', this.keyupHandler, true);
 		window.addEventListener('mousemove', this.workareaMouseMoveHandler, true);
 		window.addEventListener('mouseup', this.windowMouseUpHandler, true);
+		window.addEventListener('pointerdown', this.contextMenuPointerAwayHandler, true);
 		window.addEventListener('mousedown', this.contextMenuClickAwayHandler, true);
+		window.addEventListener('click', this.contextMenuClickAwayHandler, true);
 		document.addEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.addEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.addEventListener('keyup', this.keyupHandler, true);
@@ -171,7 +254,9 @@ export class SvgEditModal extends Modal {
 		window.removeEventListener('keyup', this.keyupHandler, true);
 		window.removeEventListener('mousemove', this.workareaMouseMoveHandler, true);
 		window.removeEventListener('mouseup', this.windowMouseUpHandler, true);
+		window.removeEventListener('pointerdown', this.contextMenuPointerAwayHandler, true);
 		window.removeEventListener('mousedown', this.contextMenuClickAwayHandler, true);
+		window.removeEventListener('click', this.contextMenuClickAwayHandler, true);
 		document.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keyup', this.keyupHandler, true);
@@ -186,7 +271,12 @@ export class SvgEditModal extends Modal {
 	}
 
 	close() {
-		if (this.dirty && !window.confirm('This SVG has unsaved changes. Close the editor anyway?')) {
+		if (this.dirty) {
+			void this.confirmAction('This SVG has unsaved changes. Close the editor anyway?', 'Unsaved changes').then((confirmed) => {
+				if (confirmed) {
+					super.close();
+				}
+			});
 			return;
 		}
 
@@ -219,6 +309,7 @@ export class SvgEditModal extends Modal {
 		this.rulerYEl = rulerYEl;
 		rulerYEl.createDiv({ cls: 'svg-edit-ruler-inner' }).createEl('canvas', { attr: { width: '15', height: '1' } });
 		this.canvasHostEl = canvasFrameEl.createDiv({ cls: 'svg-edit-canvas-host is-grid-visible', attr: { id: 'workarea' } });
+		this.eyedropperCursorEl = canvasFrameEl.createDiv({ cls: 'svg-edit-eyedropper-cursor' });
 		this.contextMenuEl = shellEl.createDiv({ cls: 'svg-edit-context-menu' });
 		const layerEl = bodyEl.createDiv({ cls: 'svg-edit-layer-panel', attr: { id: 'layer_view_panel' } });
 		this.layerPanelEl = layerEl;
@@ -258,11 +349,11 @@ export class SvgEditModal extends Modal {
 		this.connectWorkareaNavigation();
 		this.buildTopToolbar(mainTopEl, contextTopEl, textTopEl);
 		this.buildLeftToolbar(leftEl);
-		this.buildLayerPanel(layerEl);
 		this.buildBottomToolbar(bottomEl);
+		this.buildLayerPanel(layerEl);
 		this.setMode('select');
 		this.updateToolButtonState();
-		this.restoreStoredDraftIfWanted(source);
+		void this.restoreStoredDraftIfWanted(source);
 		window.requestAnimationFrame(() => this.updateCanvasViewport({ center: true }));
 	}
 
@@ -502,7 +593,8 @@ export class SvgEditModal extends Modal {
 	}
 
 	private buildBottomToolbar(toolbarEl: HTMLElement): void {
-		this.addSelectInput(toolbarEl, 'Zoom', [
+		this.addZoomControl(toolbarEl);
+		this.addSelectInput(toolbarEl, 'Fit', [
 			{ label: '1000%', value: '10' },
 			{ label: '400%', value: '4' },
 			{ label: '200%', value: '2' },
@@ -527,11 +619,11 @@ export class SvgEditModal extends Modal {
 		this.addActionButton(toolbarEl, 'No Fill', 'ban', () => this.setPaintColor('fill', 'none'));
 		this.addActionButton(toolbarEl, 'No Stroke', 'slash', () => this.setPaintColor('stroke', 'none'));
 		this.addActionButton(toolbarEl, 'Swap Fill and Stroke', 'repeat-2', () => this.swapFillAndStroke());
-		this.addNumberInput(toolbarEl, 'Stroke', 2, 0, 99, 1, (value) => {
+		this.strokeWidthInputEl = this.addNumberInput(toolbarEl, 'Stroke', 2, 0, 99, 1, (value) => {
 			this.canvas?.setStrokeWidth(value);
 			this.markDirty('Stroke width changed');
 		});
-		this.addSelectInput(toolbarEl, 'Style', [
+		this.strokeStyleSelectEl = this.addSelectInput(toolbarEl, 'Style', [
 			{ label: '—', value: 'none' },
 			{ label: '...', value: '2,2' },
 			{ label: '--', value: '5,5' },
@@ -541,7 +633,7 @@ export class SvgEditModal extends Modal {
 			this.canvas?.setStrokeAttr('stroke-dasharray', value);
 			this.markDirty('Stroke style changed');
 		});
-		this.addSelectInput(toolbarEl, 'Join', [
+		this.strokeJoinSelectEl = this.addSelectInput(toolbarEl, 'Join', [
 			{ label: 'Miter', value: 'miter' },
 			{ label: 'Round', value: 'round' },
 			{ label: 'Bevel', value: 'bevel' }
@@ -549,7 +641,7 @@ export class SvgEditModal extends Modal {
 			this.canvas?.setStrokeAttr('stroke-linejoin', value);
 			this.markDirty('Line join changed');
 		});
-		this.addSelectInput(toolbarEl, 'Cap', [
+		this.strokeCapSelectEl = this.addSelectInput(toolbarEl, 'Cap', [
 			{ label: 'Butt', value: 'butt' },
 			{ label: 'Square', value: 'square' },
 			{ label: 'Round', value: 'round' }
@@ -557,11 +649,56 @@ export class SvgEditModal extends Modal {
 			this.canvas?.setStrokeAttr('stroke-linecap', value);
 			this.markDirty('Line cap changed');
 		});
-		this.addNumberInput(toolbarEl, 'Opacity', 100, 0, 100, 5, (value) => {
+		this.opacityInputEl = this.addNumberInput(toolbarEl, 'Opacity', 100, 0, 100, 5, (value) => {
 			this.canvas?.setOpacity(value / 100);
 			this.markDirty('Opacity changed');
 		});
 		this.addPalette(toolbarEl);
+	}
+
+	private addZoomControl(parentEl: HTMLElement): void {
+		const wrapper = parentEl.createDiv({ cls: 'svg-edit-control svg-edit-zoom-control' });
+		const icon = wrapper.createSpan({ cls: 'svg-edit-zoom-icon' });
+		setIcon(icon, 'zoom-in');
+		const input = wrapper.createEl('input', {
+			attr: {
+				type: 'text',
+				inputmode: 'numeric',
+				title: 'Zoom percentage',
+				'aria-label': 'Zoom percentage',
+				value: '100'
+			}
+		});
+		this.zoomInputEl = input;
+		const stepper = wrapper.createDiv({ cls: 'svg-edit-zoom-stepper' });
+		const up = stepper.createEl('button', { text: '▲', attr: { type: 'button', title: 'Zoom in' } });
+		const down = stepper.createEl('button', { text: '▼', attr: { type: 'button', title: 'Zoom out' } });
+		const applyInput = () => {
+			const value = Number(input.value.replace('%', '').trim());
+			if (Number.isFinite(value)) {
+				this.setZoomPercent(value);
+			}
+		};
+		input.addEventListener('change', applyInput);
+		input.addEventListener('keydown', (event) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				applyInput();
+				input.blur();
+				return;
+			}
+			if (event.key === 'ArrowUp') {
+				event.preventDefault();
+				this.stepZoomPercent(10);
+				return;
+			}
+			if (event.key === 'ArrowDown') {
+				event.preventDefault();
+				this.stepZoomPercent(-10);
+			}
+		});
+		up.addEventListener('click', () => this.stepZoomPercent(10));
+		down.addEventListener('click', () => this.stepZoomPercent(-10));
 	}
 
 	private setPaintColor(type: 'fill' | 'stroke', color: string): void {
@@ -605,8 +742,17 @@ export class SvgEditModal extends Modal {
 
 	private addPalette(parentEl: HTMLElement): void {
 		const paletteEl = parentEl.createDiv({ cls: 'svg-edit-palette', attr: { id: 'palette' } });
-		['#000000', '#ffffff', '#e03131', '#f08c00', '#f2c94c', '#2f9e44', '#228be6', '#7048e8', '#d6336c', 'none'].forEach((color) => {
-			const swatch = paletteEl.createEl('button', {
+		const stripEl = paletteEl.createDiv({ cls: 'svg-edit-palette-strip' });
+		const popupEl = paletteEl.createDiv({ cls: 'svg-edit-palette-popup' });
+		const applyColor = (color: string, event: MouseEvent) => {
+			event.preventDefault();
+			const target = event.shiftKey || event.button === 2 ? 'stroke' : 'fill';
+			this.canvas?.setColor(target, color);
+			this.markDirty(`${target === 'fill' ? 'Fill' : 'Stroke'} changed`);
+			this.updateToolButtonState();
+		};
+		const createSwatch = (container: HTMLElement, color: string) => {
+			const swatch = container.createEl('button', {
 				cls: 'svg-edit-swatch',
 				attr: {
 					type: 'button',
@@ -616,17 +762,31 @@ export class SvgEditModal extends Modal {
 			});
 			swatch.style.background = color === 'none' ? 'transparent' : color;
 			swatch.toggleClass('is-none', color === 'none');
-			swatch.addEventListener('click', (event) => {
-				if (event.shiftKey) {
-					this.canvas?.setColor('stroke', color);
-					this.markDirty('Stroke changed');
-					this.updateToolButtonState();
-					return;
-				}
-				this.canvas?.setColor('fill', color);
-				this.markDirty('Fill changed');
-				this.updateToolButtonState();
-			});
+			swatch.addEventListener('click', (event) => applyColor(color, event));
+			swatch.addEventListener('contextmenu', (event) => applyColor(color, event));
+		};
+		PALETTE_COLORS.slice(0, 12).forEach((color) => createSwatch(stripEl, color));
+		PALETTE_COLORS.forEach((color) => createSwatch(popupEl, color));
+		const toggleButton = paletteEl.createEl('button', {
+			cls: 'svg-edit-palette-toggle',
+			text: '▼',
+			attr: { type: 'button', title: 'Show whole palette', 'aria-label': 'Show whole palette' }
+		});
+		toggleButton.addEventListener('click', (event) => {
+			event.stopPropagation();
+			const open = !popupEl.hasClass('is-open');
+			popupEl.toggleClass('is-open', open);
+			toggleButton.setText(open ? '▲' : '▼');
+			toggleButton.setAttribute('title', open ? 'Hide palette' : 'Show whole palette');
+		});
+		popupEl.addEventListener('click', (event) => event.stopPropagation());
+		this.modalEl.addEventListener('click', (event) => {
+			if (paletteEl.contains(event.target as Node)) {
+				return;
+			}
+			popupEl.removeClass('is-open');
+			toggleButton.setText('▼');
+			toggleButton.setAttribute('title', 'Show whole palette');
 		});
 	}
 
@@ -658,94 +818,12 @@ export class SvgEditModal extends Modal {
 		const flyoutEl = groupEl.createDiv({ cls: 'svg-edit-shape-flyout' });
 		const gridEl = flyoutEl.createDiv({ cls: 'svg-edit-shape-grid' });
 		const categoryEl = flyoutEl.createDiv({ cls: 'svg-edit-shape-categories' });
-		const libraries: Record<string, Array<{ label: string; icon: string; value: string }>> = {
-			basic: [
-				{ label: 'Heart', icon: 'heart', value: 'heart' },
-				{ label: 'Frame', icon: 'square-dashed', value: 'frame' },
-				{ label: 'Donut', icon: 'circle-dot', value: 'donut' },
-				{ label: 'Rectangle', icon: 'square', value: 'rectangle' },
-				{ label: 'Circle', icon: 'circle', value: 'circle' },
-				{ label: 'Triangle', icon: 'triangle', value: 'triangle' },
-				{ label: 'Right Triangle', icon: 'play', value: 'right_triangle' },
-				{ label: 'Diamond', icon: 'diamond', value: 'diamond' },
-				{ label: 'Pentagon', icon: 'pentagon', value: 'pentagon' },
-				{ label: 'Hexagon', icon: 'hexagon', value: 'hexagon' },
-				{ label: 'Star', icon: 'star', value: 'star_points_5' },
-				{ label: 'Trapezoid', icon: 'trapezoid', value: 'trapezoid' },
-				{ label: 'Arrow Up', icon: 'arrow-up', value: 'arrow_up' },
-				{ label: 'Smile', icon: 'smile', value: 'smiley' },
-				{ label: 'Cloud', icon: 'cloud', value: 'cloud' },
-				{ label: 'Speech Bubble', icon: 'message-square', value: 'bubble' }
-			],
-			animal: [
-				{ label: 'Bug', icon: 'bug', value: 'bug' },
-				{ label: 'Fish', icon: 'fish', value: 'fish' },
-				{ label: 'Rabbit', icon: 'rabbit', value: 'rabbit' }
-			],
-			arrow: [
-				{ label: 'Arrow Up', icon: 'arrow-up', value: 'arrow-up' },
-				{ label: 'Arrow Right', icon: 'arrow-right', value: 'arrow-right' },
-				{ label: 'Arrow Down', icon: 'arrow-down', value: 'arrow-down' },
-				{ label: 'Arrow Left', icon: 'arrow-left', value: 'arrow-left' }
-			],
-			dialog_balloon: [
-				{ label: 'Speech Bubble', icon: 'message-square', value: 'dialog_speech' },
-				{ label: 'Rect Bubble', icon: 'message-square-text', value: 'dialog_rect' },
-				{ label: 'Thought Bubble', icon: 'message-circle', value: 'dialog_thought' }
-			],
-			electronics: [
-				{ label: 'Battery', icon: 'battery', value: 'battery' },
-				{ label: 'Cpu', icon: 'cpu', value: 'chip' },
-				{ label: 'Plug', icon: 'plug', value: 'plug' }
-			],
-			flowchart: [
-				{ label: 'Process', icon: 'square', value: 'flowchart_process' },
-				{ label: 'Decision', icon: 'diamond', value: 'flowchart_decision' },
-				{ label: 'Terminator', icon: 'circle', value: 'flowchart_terminal' },
-				{ label: 'Document', icon: 'file', value: 'flowchart_document' },
-				{ label: 'Data', icon: 'database', value: 'flowchart_data' }
-			],
-			game: [
-				{ label: 'Dice', icon: 'dice-5', value: 'dice' },
-				{ label: 'Club', icon: 'club', value: 'club' },
-				{ label: 'Spade', icon: 'spade', value: 'spade' }
-			],
-			math: [
-				{ label: 'Plus', icon: 'plus', value: 'math_plus' },
-				{ label: 'Minus', icon: 'minus', value: 'math_minus' },
-				{ label: 'Equal', icon: 'equal', value: 'math_equal' },
-				{ label: 'Times', icon: 'x', value: 'math_times' },
-				{ label: 'Divide', icon: 'divide', value: 'math_divide' },
-				{ label: 'Pi', icon: 'pi', value: 'pi' }
-			],
-			misc: [
-				{ label: 'Star', icon: 'star', value: 'star' },
-				{ label: 'Smile', icon: 'smile', value: 'smile' },
-				{ label: 'Heart', icon: 'heart', value: 'heart' }
-			],
-			music: [
-				{ label: 'Music', icon: 'music', value: 'music' },
-				{ label: 'Audio', icon: 'audio-lines', value: 'audio' }
-			],
-			object: [
-				{ label: 'Home', icon: 'house', value: 'house' },
-				{ label: 'Camera', icon: 'camera', value: 'camera' },
-				{ label: 'Flag', icon: 'flag', value: 'flag' },
-				{ label: 'Bolt', icon: 'zap', value: 'object_bolt' },
-				{ label: 'Drop', icon: 'droplet', value: 'object_drop' },
-				{ label: 'Sun', icon: 'sun', value: 'object_sun' }
-			],
-			symbol: [
-				{ label: 'Link', icon: 'link', value: 'link' },
-				{ label: 'Tag', icon: 'tag', value: 'tag' },
-				{ label: 'Pin', icon: 'map-pin', value: 'pin' }
-			]
-		};
+		const libraries = SHAPE_LIBRARY_CATEGORIES;
 
 		const renderShapes = (category: string) => {
 			gridEl.empty();
 			(libraries[category] ?? libraries.basic).forEach((shape) => {
-				const shapeButton = this.createIconButton(gridEl, shape.label, shape.icon);
+				const shapeButton = this.createShapePreviewButton(gridEl, shape);
 				shapeButton.addEventListener('click', () => {
 					this.insertLibraryShape(shape.value);
 					groupEl.removeClass('is-open');
@@ -770,6 +848,30 @@ export class SvgEditModal extends Modal {
 			});
 		});
 		renderShapes('basic');
+	}
+
+	private createShapePreviewButton(parentEl: HTMLElement, shape: { fill: boolean; label: string; pathData: string; size: number }): HTMLButtonElement {
+		const button = parentEl.createEl('button', {
+			cls: 'svg-edit-icon-button svg-edit-shape-preview-button',
+			attr: {
+				type: 'button',
+				title: shape.label,
+				'aria-label': shape.label
+			}
+		});
+		const off = shape.size * 0.05;
+		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		svg.setAttribute('viewBox', `${-off} ${-off} ${shape.size + off * 2} ${shape.size + off * 2}`);
+		svg.setAttribute('aria-hidden', 'true');
+		svg.setAttribute('focusable', 'false');
+		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		path.setAttribute('d', shape.pathData);
+		path.setAttribute('fill', shape.fill ? '#f8bb00' : 'none');
+		path.setAttribute('stroke', '#f8bb00');
+		path.setAttribute('stroke-width', shape.fill ? '0' : String(shape.size / 30));
+		svg.append(path);
+		button.append(svg);
+		return button;
 	}
 
 	private addToolButton(parentEl: HTMLElement, label: string, icon: string, mode: string, id?: string): HTMLButtonElement {
@@ -822,7 +924,7 @@ export class SvgEditModal extends Modal {
 		max: number,
 		step: number,
 		onChange: (value: number) => void
-	): void {
+	): HTMLInputElement {
 		const wrapper = parentEl.createDiv({ cls: 'svg-edit-control svg-edit-number-control' });
 		wrapper.createSpan({ text: label });
 		const input = wrapper.createEl('input', {
@@ -840,6 +942,48 @@ export class SvgEditModal extends Modal {
 			const value = Number(input.value);
 			if (Number.isFinite(value)) {
 				onChange(value);
+			}
+		});
+		this.attachNumberStepper(wrapper, input, min, max, step, initialValue, onChange);
+		return input;
+	}
+
+	private attachNumberStepper(
+		wrapper: HTMLElement,
+		input: HTMLInputElement,
+		min: number,
+		max: number,
+		step: number,
+		fallbackValue: number,
+		onChange: (value: number) => void
+	): void {
+		const stepper = wrapper.createDiv({ cls: 'svg-edit-number-stepper' });
+		const increaseButton = stepper.createEl('button', {
+			text: '▲',
+			attr: { type: 'button', title: 'Increase', 'aria-label': 'Increase' }
+		});
+		const decreaseButton = stepper.createEl('button', {
+			text: '▼',
+			attr: { type: 'button', title: 'Decrease', 'aria-label': 'Decrease' }
+		});
+		const applyStep = (direction: number) => {
+			const current = Number(input.value);
+			const baseValue = Number.isFinite(current) ? current : fallbackValue;
+			const nextValue = Math.min(max, Math.max(min, baseValue + step * direction));
+			const roundedValue = Number(nextValue.toFixed(4));
+			input.value = String(roundedValue);
+			onChange(roundedValue);
+		};
+		increaseButton.addEventListener('click', () => applyStep(1));
+		decreaseButton.addEventListener('click', () => applyStep(-1));
+		input.addEventListener('keydown', (event) => {
+			if (event.key === 'ArrowUp') {
+				event.preventDefault();
+				applyStep(1);
+			}
+			if (event.key === 'ArrowDown') {
+				event.preventDefault();
+				applyStep(-1);
 			}
 		});
 	}
@@ -869,6 +1013,9 @@ export class SvgEditModal extends Modal {
 			}
 			this.changeSelectedNumericAttribute(axis, value);
 		});
+		this.attachNumberStepper(wrapper, input, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 1, 0, (value) => {
+			this.changeSelectedNumericAttribute(axis, value);
+		});
 		this.selectedPositionInputs.set(axis, input);
 	}
 
@@ -881,7 +1028,13 @@ export class SvgEditModal extends Modal {
 		const imagePanel = this.addElementContextPanel(contextEl, 'image');
 		this.addElementAttributeInput(imagePanel, 'W', 'width', 1, 10000, 1);
 		this.addElementAttributeInput(imagePanel, 'H', 'height', 1, 10000, 1);
+		this.imageUrlInputEl = this.addTextControl(imagePanel, 'URL', 'Image URL', (value) => {
+			void this.applySelectedImageUrl(value);
+		});
 		this.addActionButton(imagePanel, 'Image URL', 'image-up', () => this.setSelectedImageUrl());
+		this.addActionButton(imagePanel, 'Embed Image', 'file-down', () => {
+			void this.embedSelectedImage();
+		});
 
 		const circlePanel = this.addElementContextPanel(contextEl, 'circle');
 		this.addElementAttributeInput(circlePanel, 'Cx', 'cx', -10000, 10000, 1);
@@ -973,6 +1126,9 @@ export class SvgEditModal extends Modal {
 			}
 			this.changeSelectedNumericAttribute(attribute, value);
 		});
+		this.attachNumberStepper(wrapper, input, min, max, step, 0, (value) => {
+			this.changeSelectedNumericAttribute(attribute, value);
+		});
 		this.elementAttributeInputs.push({ panel: parentEl, attribute, input });
 	}
 
@@ -1050,6 +1206,7 @@ export class SvgEditModal extends Modal {
 				onChange(value);
 			}
 		});
+		this.attachNumberStepper(wrapper, input, min, max, step, min, onChange);
 		this.polystarInputs.set(attribute, input);
 	}
 
@@ -1069,6 +1226,9 @@ export class SvgEditModal extends Modal {
 			if (!Number.isFinite(value)) {
 				return;
 			}
+			this.movePathNode(axis, value);
+		});
+		this.attachNumberStepper(wrapper, input, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 1, 0, (value) => {
 			this.movePathNode(axis, value);
 		});
 		this.pathNodeInputs.set(axis, input);
@@ -1155,6 +1315,14 @@ export class SvgEditModal extends Modal {
 				this.refreshLayerPanel();
 				this.setStatus(`Current layer: ${layer.name}`);
 			});
+			rowEl.addEventListener('contextmenu', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this.canvas?.setCurrentLayer(layer.name);
+				this.applyLayerView();
+				this.refreshLayerPanel();
+				this.openLayerContextMenu(layer, event.clientX, event.clientY);
+			});
 			rowEl.addEventListener('mouseenter', () => this.highlightLayer(layer.name));
 			rowEl.addEventListener('mouseleave', () => this.highlightLayer(null));
 
@@ -1212,8 +1380,14 @@ export class SvgEditModal extends Modal {
 		return Boolean(drawing.hasLayer?.(trimmedName) || this.getLayerInfos().some((layer) => layer.name === trimmedName));
 	}
 
-	private promptUniqueLayerName(message: string, fallback: string, currentName?: string): string | null {
-		const name = window.prompt(message, fallback)?.trim();
+	private promptText(title: string, initialValue = ''): Promise<string | null> {
+		return new Promise((resolve) => {
+			new SvgPromptModal(this.app, title, initialValue, resolve).open();
+		});
+	}
+
+	private async promptUniqueLayerName(message: string, fallback: string, currentName?: string): Promise<string | null> {
+		const name = (await this.promptText(message, fallback))?.trim();
 		if (!name) {
 			return null;
 		}
@@ -1241,9 +1415,9 @@ export class SvgEditModal extends Modal {
 		});
 	}
 
-	private createLayer(): void {
+	private async createLayer(): Promise<void> {
 		const fallback = `Layer ${this.getLayerInfos().length + 1}`;
-		const name = this.promptUniqueLayerName('Layer name', fallback);
+		const name = await this.promptUniqueLayerName('Layer name', fallback);
 		if (!name || !this.canvas) {
 			return;
 		}
@@ -1253,9 +1427,9 @@ export class SvgEditModal extends Modal {
 		this.toggleLayerPanel(true);
 	}
 
-	private renameLayer(): void {
+	private async renameLayer(): Promise<void> {
 		const current = this.currentLayerInfo();
-		const name = this.promptUniqueLayerName('Layer name', current?.name ?? '', current?.name);
+		const name = await this.promptUniqueLayerName('Layer name', current?.name ?? '', current?.name);
 		if (!name || !this.canvas) {
 			return;
 		}
@@ -1264,9 +1438,9 @@ export class SvgEditModal extends Modal {
 		this.refreshLayerPanel();
 	}
 
-	private cloneLayer(): void {
+	private async cloneLayer(): Promise<void> {
 		const current = this.currentLayerInfo();
-		const name = this.promptUniqueLayerName('Duplicate layer name', current ? `${current.name} copy` : 'Layer copy');
+		const name = await this.promptUniqueLayerName('Duplicate layer name', current ? `${current.name} copy` : 'Layer copy');
 		if (!name || !this.canvas) {
 			return;
 		}
@@ -1280,7 +1454,11 @@ export class SvgEditModal extends Modal {
 			new Notice('The document must keep at least one layer.');
 			return;
 		}
-		if (!window.confirm('Delete the current layer?')) {
+		void this.deleteLayerConfirmed();
+	}
+
+	private async deleteLayerConfirmed(): Promise<void> {
+		if (!this.canvas || !(await this.confirmAction('Delete the current layer?', 'Delete layer'))) {
 			return;
 		}
 		this.canvas.deleteCurrentLayer();
@@ -1318,6 +1496,19 @@ export class SvgEditModal extends Modal {
 		this.canvas.mergeAllLayers();
 		this.markDirty('Layers merged');
 		this.refreshLayerPanel();
+	}
+
+	private openLayerContextMenu(layer: LayerInfo, clientX: number, clientY: number): void {
+		const layerCount = this.getLayerInfos().length;
+		this.renderContextMenu([
+			{ label: 'Duplicate Layer', action: () => this.cloneLayer() },
+			{ label: 'Delete Layer', action: () => this.deleteLayer(), disabled: layerCount <= 1 },
+			{ separator: true, label: '' },
+			{ label: 'Merge Down', action: () => this.mergeLayer(), disabled: layerCount <= 1 || layer.index <= 0 },
+			{ label: 'Merge All Layers', action: () => this.mergeAllLayers(), disabled: layerCount <= 1 },
+			{ separator: true, label: '' },
+			{ label: 'Rename Layer', action: () => this.renameLayer() }
+		], clientX, clientY);
 	}
 
 	private moveSelectionToCurrentLayer(): void {
@@ -1397,6 +1588,9 @@ export class SvgEditModal extends Modal {
 		this.canvas.setMode(mode);
 		if (mode !== 'eyedropper') {
 			this.pickedStyle = null;
+			this.eyedropperCursorEl?.removeClass('is-visible');
+		} else {
+			this.primeEyedropperStyleFromSelection();
 		}
 		this.contentEl.querySelectorAll<HTMLButtonElement>('.svg-edit-icon-button[data-mode]').forEach((button) => {
 			button.toggleClass('is-active', button.dataset.mode === mode);
@@ -1418,6 +1612,7 @@ export class SvgEditModal extends Modal {
 		this.updateSelectedPositionPanel(selectedElements);
 		this.updateElementContextPanels(selectedElements);
 		this.updateContainerContextPanels(selectedElements);
+		this.updateBottomPaintControls(selectedElements);
 		this.updateUsePanel(selectedElements);
 		this.updatePathNodePanel(mode);
 		this.updateMarkerPanel(selectedElements);
@@ -1505,6 +1700,33 @@ export class SvgEditModal extends Modal {
 		this.unlinkUseButtonEl?.toggleClass('is-visible', element?.tagName.toLowerCase() === 'use');
 	}
 
+	private updateBottomPaintControls(selectedElements: Element[]): void {
+		const element = selectedElements.length === 1 ? selectedElements[0] : null;
+		if (!element) {
+			return;
+		}
+
+		const setInput = (input: HTMLInputElement | null, value: string | null, fallback: string) => {
+			if (input && document.activeElement !== input) {
+				input.value = value ?? fallback;
+			}
+		};
+		const setSelect = (select: HTMLSelectElement | null, value: string | null, fallback: string) => {
+			if (!select || document.activeElement === select) {
+				return;
+			}
+			const normalized = value && value !== '0' ? value : fallback;
+			select.value = Array.from(select.options).some((option) => option.value === normalized) ? normalized : fallback;
+		};
+
+		const opacity = Number(element.getAttribute('opacity') ?? '1');
+		setInput(this.strokeWidthInputEl, element.getAttribute('stroke-width'), '2');
+		setSelect(this.strokeStyleSelectEl, element.getAttribute('stroke-dasharray'), 'none');
+		setSelect(this.strokeJoinSelectEl, element.getAttribute('stroke-linejoin'), 'miter');
+		setSelect(this.strokeCapSelectEl, element.getAttribute('stroke-linecap'), 'butt');
+		setInput(this.opacityInputEl, Number.isFinite(opacity) ? String(Math.round(opacity * 100)) : null, '100');
+	}
+
 	private getOwningLinkElement(element: Element): Element | null {
 		if (element.tagName.toLowerCase() === 'a') {
 			return element;
@@ -1579,6 +1801,9 @@ export class SvgEditModal extends Modal {
 			}
 			input.value = element.getAttribute(attribute) ?? '0';
 		});
+		if (this.imageUrlInputEl && elementName === 'image' && this.canvas) {
+			this.imageUrlInputEl.value = this.canvas.getHref(element);
+		}
 	}
 
 	private updatePolystarPanels(selectedElements: Element[]): void {
@@ -1822,6 +2047,16 @@ export class SvgEditModal extends Modal {
 
 	private cancelCurrentTool(): void {
 		const mode = this.canvas?.getMode();
+		if (mode === 'eyedropper') {
+			if (this.pickedStyle) {
+				this.pickedStyle = null;
+				this.updateEyedropperCursorStyle();
+				this.setStatus('Eyedropper reset');
+				return;
+			}
+			this.setMode('select');
+			return;
+		}
 		const modesToCancel = ['zoom', 'rect', 'square', 'circle', 'ellipse', 'line', 'text', 'star', 'polygon', 'shapelib', 'image'];
 		if (mode && modesToCancel.includes(mode)) {
 			this.setMode('select');
@@ -1898,12 +2133,12 @@ export class SvgEditModal extends Modal {
 		this.markDirty('Alignment changed');
 	}
 
-	private createOrEditLink(): void {
+	private async createOrEditLink(): Promise<void> {
 		if (!this.canvas) {
 			return;
 		}
 
-		const url = window.prompt('Link URL', 'https://');
+		const url = await this.promptText('Link URL', 'https://');
 		if (!url) {
 			return;
 		}
@@ -1912,21 +2147,83 @@ export class SvgEditModal extends Modal {
 		this.markDirty('Link created');
 	}
 
-	private setSelectedImageUrl(): void {
+	private async setSelectedImageUrl(): Promise<void> {
 		if (!this.canvas) {
 			return;
 		}
 
-		const url = window.prompt('Image URL');
+		const selected = this.canvas.getSelectedElements().filter(Boolean);
+		const image = selected.length === 1 && selected[0].tagName.toLowerCase() === 'image' ? selected[0] : null;
+		const currentHref = image ? this.canvas.getHref(image) : '';
+		const url = await this.promptText('Image URL', currentHref.startsWith('data:') ? '' : currentHref);
 		if (!url) {
 			return;
 		}
 
-		this.canvas.setImageURL(url.trim());
-		this.markDirty('Image URL changed');
+		void this.applySelectedImageUrl(url);
 	}
 
-	private setSelectedAttribute(attribute: string, label: string): void {
+	private async applySelectedImageUrl(url: string): Promise<void> {
+		if (!this.canvas) {
+			return;
+		}
+
+		const trimmedUrl = url.trim();
+		if (!trimmedUrl) {
+			return;
+		}
+
+		this.canvas.setImageURL(trimmedUrl);
+		this.imageUrlInputEl && (this.imageUrlInputEl.value = trimmedUrl);
+		if (!trimmedUrl.startsWith('data:')) {
+			await this.tryEmbedSelectedImage(trimmedUrl);
+		}
+		this.markDirty('Image URL changed');
+		this.updateContextPanels();
+	}
+
+	private async embedSelectedImage(): Promise<void> {
+		if (!this.canvas) {
+			return;
+		}
+
+		const selected = this.canvas.getSelectedElements().filter(Boolean);
+		const image = selected.length === 1 && selected[0].tagName.toLowerCase() === 'image' ? selected[0] : null;
+		if (!image) {
+			new Notice('Select an image first.');
+			return;
+		}
+
+		const href = this.canvas.getHref(image);
+		if (!href || href.startsWith('data:')) {
+			new Notice('Image is already embedded.');
+			return;
+		}
+
+		await this.tryEmbedSelectedImage(href, true);
+	}
+
+	private async tryEmbedSelectedImage(url: string, notifySuccess = false): Promise<void> {
+		if (!this.canvas) {
+			return;
+		}
+
+		try {
+			const image = await this.canvas.embedImage(url);
+			this.canvas.setMode('select');
+			this.canvas.selectOnly([image]);
+			this.imageUrlInputEl && (this.imageUrlInputEl.value = this.canvas.getHref(image));
+			this.markDirty('Image embedded');
+			if (notifySuccess) {
+				new Notice('Image embedded.');
+			}
+		} catch (error) {
+			console.error('Could not embed image', error);
+			new Notice('Image URL was set, but the image could not be embedded.');
+		}
+	}
+
+	private async setSelectedAttribute(attribute: string, label: string): Promise<void> {
 		if (!this.canvas) {
 			return;
 		}
@@ -1938,7 +2235,7 @@ export class SvgEditModal extends Modal {
 		}
 
 		const current = selected[0].getAttribute(attribute) ?? '';
-		const value = window.prompt(label, current);
+		const value = await this.promptText(label, current);
 		if (value === null) {
 			return;
 		}
@@ -2114,6 +2411,7 @@ export class SvgEditModal extends Modal {
 				if (!shape || !marker?.getAttribute('se_type')) {
 					return;
 				}
+				this.ensureOwnMarkerReference(element, attribute, marker);
 				if (shape.getAttribute('fill') !== 'none') {
 					shape.setAttribute('fill', color);
 				}
@@ -2122,6 +2420,26 @@ export class SvgEditModal extends Modal {
 				}
 			});
 		});
+	}
+
+	private ensureOwnMarkerReference(element: Element, attribute: 'marker-start' | 'marker-mid' | 'marker-end', marker: Element): void {
+		if (!this.canvas || !element.id) {
+			return;
+		}
+
+		const markerType = marker.getAttribute('se_type') as MarkerType | null;
+		const position = attribute.replace('marker-', '') as MarkerPosition;
+		const expectedId = `mkr_${position}_${element.id}`;
+		if (!markerType || marker.id === expectedId) {
+			return;
+		}
+
+		const defs = this.ensureDefsElement();
+		const existing = defs.querySelector(`#${CSS.escape(expectedId)}`);
+		if (!existing) {
+			this.createMarker(expectedId, markerType, element);
+		}
+		element.setAttribute(attribute, `url(#${expectedId})`);
 	}
 
 	private getLinkedMarker(element: Element, attribute: string): Element | null {
@@ -2137,6 +2455,10 @@ export class SvgEditModal extends Modal {
 	private createMarker(id: string, markerType: MarkerType, targetElement: Element): SVGMarkerElement {
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const defs = this.ensureDefsElement();
+		const existing = defs.querySelector(`#${CSS.escape(id)}`);
+		if (existing instanceof SVGMarkerElement) {
+			return existing;
+		}
 		const marker = document.createElementNS(svgNS, 'marker');
 		marker.setAttribute('id', id);
 		marker.setAttribute('markerUnits', 'strokeWidth');
@@ -2294,9 +2616,10 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const originalPath = BASIC_SHAPE_PATHS[shape];
+		const libraryPath = getShapeLibraryPath(shape);
+		const originalPath = libraryPath?.pathData ?? BASIC_SHAPE_PATHS[shape];
 		if (originalPath) {
-			this.insertLibraryPath(originalPath);
+			this.insertLibraryPath(originalPath, libraryPath?.size ?? 300);
 			return;
 		}
 
@@ -2406,13 +2729,14 @@ export class SvgEditModal extends Modal {
 		this.markDirty('Shape inserted');
 	}
 
-	private insertLibraryPath(pathData: string): void {
+	private insertLibraryPath(pathData: string, sourceSize = 300): void {
 		if (!this.canvas) {
 			return;
 		}
 
 		const x = Math.round(this.canvasWidth / 2 - 60);
 		const y = Math.round(this.canvasHeight / 2 - 60);
+		const scale = 120 / Math.max(sourceSize, 1);
 		const element = this.canvas.addSVGElementsFromJson({
 			element: 'path',
 			attr: {
@@ -2420,7 +2744,7 @@ export class SvgEditModal extends Modal {
 				fill: '#f2c94c',
 				stroke: '#111111',
 				'stroke-width': 2,
-				transform: `translate(${x},${y}) scale(0.4)`
+				transform: `translate(${x},${y}) scale(${scale})`
 			}
 		});
 		this.canvas.selectOnly([element]);
@@ -2551,12 +2875,12 @@ export class SvgEditModal extends Modal {
 		};
 	}
 
-	private setDocumentTitle(): void {
+	private async setDocumentTitle(): Promise<void> {
 		if (!this.canvas) {
 			return;
 		}
 
-		const title = window.prompt('Document title', this.file.basename);
+		const title = await this.promptText('Document title', this.canvas.getDocumentTitle() || this.file.basename);
 		if (title === null) {
 			return;
 		}
@@ -2603,12 +2927,12 @@ export class SvgEditModal extends Modal {
 		this.markDirty('Document properties changed');
 	}
 
-	private setBackgroundColor(): void {
+	private async setBackgroundColor(): Promise<void> {
 		if (!this.canvas) {
 			return;
 		}
 
-		const color = window.prompt('Background color', '#ffffff');
+		const color = await this.promptText('Background color', this.backgroundColor || '#ffffff');
 		if (color === null) {
 			return;
 		}
@@ -2801,6 +3125,15 @@ export class SvgEditModal extends Modal {
 		this.setZoom(Number(value));
 	}
 
+	private setZoomPercent(percent: number): void {
+		this.setZoom(Math.max(10, percent) / 100);
+	}
+
+	private stepZoomPercent(delta: number): void {
+		const current = Math.round((this.canvas?.getZoom() ?? 1) * 100);
+		this.setZoomPercent(current + delta);
+	}
+
 	private setZoom(zoom: number): void {
 		if (!this.canvas || !Number.isFinite(zoom) || zoom <= 0) {
 			return;
@@ -2808,6 +3141,7 @@ export class SvgEditModal extends Modal {
 
 		this.canvas.setCurrentZoom(zoom);
 		this.updateCanvasViewport();
+		this.updateZoomInput(zoom);
 		this.setStatus(`Zoom ${Math.round(zoom * 100)}%`);
 	}
 
@@ -2818,6 +3152,7 @@ export class SvgEditModal extends Modal {
 
 		this.canvas.setCurrentZoom(1);
 		this.updateCanvasViewport({ center: true });
+		this.updateZoomInput(1);
 		this.setStatus('Zoom 100%');
 	}
 
@@ -2839,7 +3174,14 @@ export class SvgEditModal extends Modal {
 				offsetY
 			}
 		});
+		this.updateZoomInput(zoom);
 		this.setStatus(`Zoom ${Math.round(zoom * 100)}%`);
+	}
+
+	private updateZoomInput(zoom = this.canvas?.getZoom() ?? 1): void {
+		if (this.zoomInputEl) {
+			this.zoomInputEl.value = String(Math.round(zoom * 100));
+		}
 	}
 
 	private updateCanvasViewport(options: {
@@ -3013,6 +3355,7 @@ export class SvgEditModal extends Modal {
 		if (box.width > 0 && this.canvas.getMode() === 'zoom') {
 			this.setMode('select');
 		}
+		this.updateZoomInput();
 		this.setStatus(`Zoom ${Math.round(this.canvas.getZoom() * 100)}%`);
 	}
 
@@ -3037,6 +3380,9 @@ export class SvgEditModal extends Modal {
 	private handleWorkareaMouseDown(event: MouseEvent): void {
 		if (!this.canvas || !this.canvasHostEl) {
 			return;
+		}
+		if (event.button !== 2) {
+			this.closeContextMenu();
 		}
 
 		const mode = this.canvas.getMode();
@@ -3083,6 +3429,11 @@ export class SvgEditModal extends Modal {
 		this.zoomAtPoint(this.canvas.getZoom() * (event.shiftKey ? 0.5 : 2), event.clientX, event.clientY);
 	}
 
+	private handleWorkareaScroll(): void {
+		this.closeContextMenu();
+		this.updateOverviewViewport();
+	}
+
 	private handleEyedropperMouseDown(event: MouseEvent): void {
 		if (!this.canvas) {
 			return;
@@ -3103,7 +3454,54 @@ export class SvgEditModal extends Modal {
 		}
 
 		this.pickedStyle = this.readPickedStyle(element);
+		this.updateEyedropperCursorStyle();
 		this.setStatus('Style picked');
+	}
+
+	private primeEyedropperStyleFromSelection(): void {
+		if (!this.canvas) {
+			return;
+		}
+
+		const selected = this.canvas.getSelectedElements().filter(Boolean);
+		const element = selected.length === 1 ? this.getPaintableTarget(selected[0]) : null;
+		if (!element) {
+			this.updateEyedropperCursorStyle();
+			return;
+		}
+
+		this.pickedStyle = this.readPickedStyle(element);
+		this.updateEyedropperCursorStyle();
+	}
+
+	private updateEyedropperCursorFromMouse(event: MouseEvent): void {
+		if (!this.canvas || this.canvas.getMode() !== 'eyedropper' || !this.eyedropperCursorEl) {
+			return;
+		}
+
+		this.eyedropperCursorEl.style.left = `${event.clientX + 12}px`;
+		this.eyedropperCursorEl.style.top = `${event.clientY + 12}px`;
+		this.updateEyedropperCursorStyle();
+	}
+
+	private updateEyedropperCursorStyle(): void {
+		if (!this.eyedropperCursorEl) {
+			return;
+		}
+
+		if (!this.pickedStyle) {
+			this.eyedropperCursorEl.removeClass('is-visible');
+			return;
+		}
+
+		const fill = this.pickedStyle.fill && this.pickedStyle.fill !== 'none' ? this.pickedStyle.fill : 'transparent';
+		const stroke = this.pickedStyle.stroke && this.pickedStyle.stroke !== 'none' ? this.pickedStyle.stroke : '#111111';
+		const dash = this.pickedStyle['stroke-dasharray'] && this.pickedStyle['stroke-dasharray'] !== 'none' ? 'dotted' : 'solid';
+		this.eyedropperCursorEl.style.background = fill;
+		this.eyedropperCursorEl.style.borderColor = stroke;
+		this.eyedropperCursorEl.style.borderStyle = dash;
+		this.eyedropperCursorEl.style.opacity = this.pickedStyle.opacity ?? '1';
+		this.eyedropperCursorEl.addClass('is-visible');
 	}
 
 	private getPaintableTarget(target: Element | null): Element | null {
@@ -3150,6 +3548,7 @@ export class SvgEditModal extends Modal {
 		event.preventDefault();
 		event.stopPropagation();
 		event.stopImmediatePropagation();
+		this.closeContextMenu();
 		this.openContextMenu(event.clientX, event.clientY);
 	}
 
@@ -3279,7 +3678,13 @@ export class SvgEditModal extends Modal {
 		this.contextMenuEl?.removeClass('is-open');
 	}
 
-	private handleContextMenuClickAway(event: MouseEvent): void {
+	private confirmAction(message: string, title = 'Confirm'): Promise<boolean> {
+		return new Promise((resolve) => {
+			new SvgConfirmModal(this.app, title, message, resolve).open();
+		});
+	}
+
+	private handleContextMenuClickAway(event: MouseEvent | PointerEvent): void {
 		if (!this.contextMenuEl?.hasClass('is-open')) {
 			return;
 		}
@@ -3293,6 +3698,7 @@ export class SvgEditModal extends Modal {
 	}
 
 	private handleWorkareaMouseMove(event: MouseEvent): void {
+		this.updateEyedropperCursorFromMouse(event);
 		if (!this.canvasHostEl || !this.panPointerDown) {
 			return;
 		}
@@ -3338,7 +3744,11 @@ export class SvgEditModal extends Modal {
 	}
 
 	private newDocument(): void {
-		if (!this.canvas || !window.confirm('Clear the current SVG and start a new document?')) {
+		void this.newDocumentConfirmed();
+	}
+
+	private async newDocumentConfirmed(): Promise<void> {
+		if (!this.canvas || !(await this.confirmAction('Clear the current SVG and start a new document?', 'New document'))) {
 			return;
 		}
 
@@ -3461,6 +3871,12 @@ export class SvgEditModal extends Modal {
 		const isTyping = this.isEditableKeyTarget(target);
 		const key = event.key.toLowerCase();
 		const modifier = event.metaKey || event.ctrlKey;
+
+		if (key === 'escape' && this.contextMenuEl?.hasClass('is-open')) {
+			this.consumeShortcut(event);
+			this.closeContextMenu();
+			return;
+		}
 
 		if (modifier && key === 's') {
 			this.consumeShortcut(event);
@@ -3705,14 +4121,14 @@ export class SvgEditModal extends Modal {
 		return `svgeditor:draft:${this.file.path}`;
 	}
 
-	private restoreStoredDraftIfWanted(currentSource: string): void {
+	private async restoreStoredDraftIfWanted(currentSource: string): Promise<void> {
 		const draft = this.readStoredDraft();
 		if (!draft || !this.canvas || draft.source.trim() === currentSource.trim()) {
 			return;
 		}
 
 		const date = new Date(draft.updatedAt);
-		const restore = window.confirm(`A local SVG draft from ${date.toLocaleString()} was found for ${this.file.name}. Restore it?`);
+		const restore = await this.confirmAction(`A local SVG draft from ${date.toLocaleString()} was found for ${this.file.name}. Restore it?`, 'Restore draft');
 		if (!restore) {
 			this.clearStoredDraft();
 			return;
@@ -3810,6 +4226,103 @@ type EditorPreferences = {
 };
 
 type ExportType = 'SVG' | 'PNG' | 'JPEG' | 'BMP' | 'WEBP' | 'PDF';
+
+class SvgConfirmModal extends Modal {
+	private readonly heading: string;
+	private readonly message: string;
+	private readonly onResolve: (confirmed: boolean) => void;
+	private resolved = false;
+
+	constructor(app: App, heading: string, message: string, onResolve: (confirmed: boolean) => void) {
+		super(app);
+		this.heading = heading;
+		this.message = message;
+		this.onResolve = onResolve;
+	}
+
+	onOpen() {
+		this.modalEl.addClass('svg-confirm-modal');
+		this.titleEl.setText(this.heading);
+		this.contentEl.createDiv({ cls: 'svg-confirm-message', text: this.message });
+		const actions = this.contentEl.createDiv({ cls: 'svg-confirm-actions' });
+		const cancelButton = actions.createEl('button', { text: 'Cancel' });
+		cancelButton.addEventListener('click', () => this.resolve(false));
+		const okButton = actions.createEl('button', { text: 'OK', cls: 'mod-cta' });
+		okButton.addEventListener('click', () => this.resolve(true));
+	}
+
+	onClose() {
+		if (!this.resolved) {
+			this.onResolve(false);
+		}
+		this.contentEl.empty();
+	}
+
+	private resolve(confirmed: boolean): void {
+		this.resolved = true;
+		this.onResolve(confirmed);
+		super.close();
+	}
+}
+
+class SvgPromptModal extends Modal {
+	private readonly heading: string;
+	private readonly initialValue: string;
+	private readonly onResolve: (value: string | null) => void;
+	private resolved = false;
+
+	constructor(app: App, heading: string, initialValue: string, onResolve: (value: string | null) => void) {
+		super(app);
+		this.heading = heading;
+		this.initialValue = initialValue;
+		this.onResolve = onResolve;
+	}
+
+	onOpen() {
+		this.modalEl.addClass('svg-prompt-modal');
+		this.titleEl.setText(this.heading);
+		const input = this.contentEl.createEl('input', {
+			cls: 'svg-prompt-input',
+			attr: {
+				type: 'text',
+				value: this.initialValue,
+				'aria-label': this.heading
+			}
+		});
+		const actions = this.contentEl.createDiv({ cls: 'svg-prompt-actions' });
+		const cancelButton = actions.createEl('button', { text: 'Cancel' });
+		cancelButton.addEventListener('click', () => this.resolve(null));
+		const okButton = actions.createEl('button', { text: 'OK', cls: 'mod-cta' });
+		okButton.addEventListener('click', () => this.resolve(input.value));
+		input.addEventListener('keydown', (event) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				this.resolve(input.value);
+			}
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				this.resolve(null);
+			}
+		});
+		requestAnimationFrame(() => {
+			input.focus();
+			input.select();
+		});
+	}
+
+	onClose() {
+		if (!this.resolved) {
+			this.onResolve(null);
+		}
+		this.contentEl.empty();
+	}
+
+	private resolve(value: string | null): void {
+		this.resolved = true;
+		this.onResolve(value);
+		super.close();
+	}
+}
 
 class SvgDocumentPropertiesModal extends Modal {
 	private readonly properties: DocumentProperties;
