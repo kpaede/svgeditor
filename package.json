@@ -1,7 +1,7 @@
 {
 	"name": "svgeditor",
-	"version": "0.0.2",
-	"description": "Edit SVG files directly in Obsidian with SVG-Edit.",
+	"version": "0.0.2.1",
+	"description": "Edit SVG files.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
