@@ -1,22 +1,24 @@
-# vscode
-.vscode 
+# Eigene Ordner
+svg_web_editor_for_info/
 
-# Intellij
+# VS Code
+.vscode/
+
+# IntelliJ / JetBrains
 *.iml
-.idea
+.idea/
 
-# npm
-node_modules
+# Node / npm
+node_modules/
 
-# Don't include the compiled main.js file in the repo.
-# They should be uploaded to GitHub releases instead.
+# Obsidian
+data.json
+.obsidian/
+
+# Build-Dateien & Sourcemaps
 main.js
-
-# Exclude sourcemaps
 *.map
 
-# obsidian
-data.json
-
-# Exclude macOS Finder (System Explorer) View States
+# System-Dateien
 .DS_Store
+Thumbs.db

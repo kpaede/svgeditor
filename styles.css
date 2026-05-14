@@ -63,8 +63,8 @@
 	bottom: 0;
 	z-index: 35;
 	flex: 0 0 auto;
-	height: 34px;
-	min-height: 30px;
+	height: auto;
+	min-height: 38px;
 	border-top: 1px solid var(--svg-edit-line);
 }
 
@@ -458,55 +458,57 @@
 	border: 1px solid var(--svg-edit-line);
 }
 
-.svg-edit-palette {
-	display: inline-flex;
-	position: relative;
-	align-items: center;
+.svg-edit-paint-control {
 	gap: 3px;
-	height: 26px;
-	padding: 0 4px;
+}
+
+.svg-edit-paint-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 22px;
+	padding: 2px 5px;
+	color: #111;
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.svg-edit-paint-preview,
+.svg-paint-large-preview {
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	border: 1px solid var(--svg-edit-line);
+	background: #fff;
+}
+
+.svg-edit-paint-preview.is-none,
+.svg-paint-large-preview.is-none {
+	background-color: #fff;
+	background-image:
+		linear-gradient(45deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%),
+		linear-gradient(135deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%);
+}
+
+.svg-edit-paint-value {
+	min-width: 48px;
+	text-align: left;
+	font-size: 11px;
+	line-height: 1;
+}
+
+.svg-edit-palette {
+	display: grid;
+	grid-template-columns: repeat(21, 16px);
+	grid-auto-rows: 16px;
+	gap: 2px;
+	align-items: center;
+	padding: 2px 4px;
 	background: transparent;
 	border: 0;
 	border-radius: 0;
-}
-
-.svg-edit-palette-strip {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	max-width: 224px;
-	overflow: hidden;
-}
-
-.svg-edit-palette-popup {
-	position: absolute;
-	right: 0;
-	bottom: 30px;
-	z-index: 1100;
-	display: none;
-	flex-wrap: wrap;
-	gap: 2px;
-	width: 190px;
-	padding: 5px;
-	background: #f0f0f0;
-	border: 1px solid var(--svg-edit-line);
-	box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28);
-}
-
-.svg-edit-palette-popup.is-open {
-	display: flex;
-}
-
-.svg-edit-palette-toggle {
-	width: 16px;
-	height: 18px;
-	padding: 0;
-	color: #111;
-	font-size: 10px;
-	line-height: 1;
-	background: transparent;
-	border: 0;
-	box-shadow: none;
 }
 
 .svg-edit-swatch {
@@ -518,8 +520,10 @@
 }
 
 .svg-edit-swatch.is-none {
+	background-color: #fff;
 	background-image:
-		linear-gradient(45deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%);
+		linear-gradient(45deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%),
+		linear-gradient(135deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%);
 }
 
 .svg-edit-canvas-host {
@@ -541,6 +545,26 @@
 		var(--svg-edit-grid-minor-size, 10px) var(--svg-edit-grid-minor-size, 10px),
 		var(--svg-edit-grid-major-size, 100px) var(--svg-edit-grid-major-size, 100px),
 		var(--svg-edit-grid-major-size, 100px) var(--svg-edit-grid-major-size, 100px);
+}
+
+.svg-edit-canvas-host.wireframe #svgcontent * {
+	fill: none;
+	stroke: #000;
+	stroke-width: var(--svg-edit-wireframe-stroke-width, 1px);
+	stroke-opacity: 1;
+	stroke-dasharray: 0;
+	opacity: 1;
+	pointer-events: stroke;
+	filter: none;
+}
+
+.svg-edit-canvas-host.wireframe #svgcontent text {
+	fill: #000;
+	stroke: none;
+}
+
+.svg-edit-canvas-host.wireframe #canvasBackground > rect {
+	fill: #fff !important;
 }
 
 .svg-edit-canvas-host #svgroot {
@@ -995,6 +1019,17 @@
 	justify-content: flex-end;
 }
 
+.svg-close-changes-modal {
+	width: min(92vw, 460px);
+}
+
+.svg-close-changes-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
 .svg-prompt-modal {
 	width: min(92vw, 420px);
 }
@@ -1008,6 +1043,204 @@
 	display: flex;
 	gap: 8px;
 	justify-content: flex-end;
+}
+
+.svg-gradient-modal {
+	width: min(92vw, 420px);
+}
+
+.svg-gradient-form {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 16px;
+}
+
+.svg-gradient-field {
+	display: grid;
+	grid-template-columns: 120px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	font-size: var(--font-ui-small);
+}
+
+.svg-gradient-field input,
+.svg-gradient-field select {
+	width: 100%;
+}
+
+.svg-gradient-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.svg-paint-modal {
+	width: min(92vw, 560px);
+}
+
+.svg-paint-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.svg-paint-tabs button {
+	padding: 4px 8px;
+	border: 1px solid var(--svg-edit-line);
+	border-radius: 0;
+}
+
+.svg-paint-tabs button.is-active {
+	color: #111;
+	background: #fff;
+}
+
+.svg-paint-panel {
+	min-height: 270px;
+	padding: 8px;
+	background: #e6e6e6;
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-paint-solid-layout {
+	display: grid;
+	grid-template-columns: minmax(180px, 1fr) 72px 96px 128px;
+	gap: 10px;
+	align-items: start;
+}
+
+.svg-paint-map {
+	position: relative;
+	height: 220px;
+	background:
+		linear-gradient(to top, #000, transparent),
+		linear-gradient(to right, #fff, #f00);
+	border: 1px solid var(--svg-edit-line);
+	cursor: crosshair;
+}
+
+.svg-paint-preview-column {
+	display: grid;
+	gap: 4px;
+	justify-items: center;
+	font-size: 10px;
+}
+
+.svg-paint-large-preview {
+	width: 64px;
+	height: 64px;
+}
+
+.svg-paint-fields,
+.svg-paint-gradient-form {
+	display: grid;
+	gap: 5px;
+}
+
+.svg-paint-field {
+	display: grid;
+	grid-template-columns: 22px minmax(0, 1fr);
+	align-items: center;
+	gap: 5px;
+	font-size: 11px;
+}
+
+.svg-paint-gradient-field {
+	display: grid;
+	grid-template-columns: 78px 48px;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.svg-paint-field input {
+	width: 100%;
+	height: 22px;
+}
+
+.svg-paint-gradient-field input[type="number"] {
+	width: 48px;
+	height: 22px;
+}
+
+.svg-paint-gradient-field input[type="color"] {
+	width: 44px;
+	height: 22px;
+	padding: 0;
+}
+
+.svg-paint-quick-palette {
+	display: grid;
+	grid-template-columns: repeat(6, 16px);
+	gap: 2px;
+	align-content: start;
+}
+
+.svg-paint-gradient-form {
+	grid-template-columns: minmax(220px, 1fr) 150px 128px;
+	align-items: start;
+}
+
+.svg-paint-gradient-preview {
+	grid-column: 1;
+	grid-row: 1 / 7;
+	height: 260px;
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-paint-gradient-controls {
+	display: grid;
+	grid-column: 2 / 4;
+	grid-row: 1 / 5;
+	gap: 8px;
+}
+
+.svg-paint-gradient-group {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 4px 8px;
+	padding: 6px;
+	border: 1px solid var(--svg-edit-line);
+	border-radius: 4px;
+	background: #ededed;
+}
+
+.svg-paint-gradient-group-title {
+	grid-column: 1 / -1;
+	text-align: center;
+	font-weight: 600;
+	font-size: 11px;
+}
+
+.svg-paint-compact-field {
+	display: grid;
+	grid-template-columns: 34px 48px;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.svg-paint-compact-field input {
+	width: 48px;
+	height: 22px;
+}
+
+.svg-paint-gradient-checkbox {
+	display: flex;
+	grid-column: 1 / -1;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.svg-paint-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 10px;
 }
 
 .svg-document-properties-modal {

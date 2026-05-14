@@ -16,7 +16,9 @@ const UNIT_FACTORS: Record<string, number> = {
 	cm: 96 / 2.54,
 	mm: 96 / 25.4,
 	pt: 96 / 72,
-	pc: 16
+	pc: 16,
+	em: 16,
+	ex: 8
 };
 
 export class Rulers {
