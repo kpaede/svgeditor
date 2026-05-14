@@ -1,6 +1,6 @@
 # SVG Editor for Obsidian
 
-This plugin integrates a fully functional SVG editor (based on `@svgedit/svgcanvas`) directly into Obsidian. It allows you to create, edit, and manage vector graphics natively within your vault.
+This plugin integrates a fully functional SVG editor (based on https://github.com/svg-edit/svgedit ) directly into Obsidian. It allows you to create, edit, and manage vector graphics natively within your vault.
 
 ## Features
 
