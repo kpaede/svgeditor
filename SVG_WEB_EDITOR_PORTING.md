@@ -30,7 +30,7 @@ Status:
 | done | `extensions/ext-grid/ext-grid.js` | Grid-Anzeige mit Grid3x3-Icon, Farbe, Zoom-angepasste Intervalle, Snapping | `src/ui/svg-edit-modal.ts`, `styles.css` |
 | reviewed | `extensions/ext-helloworld/ext-helloworld.js` | Demo-/Tutorial-Extension; fuer produktives Obsidian-Plugin nicht sinnvoll | nicht portiert |
 | done | `panels/BottomPanel.*` | Bottom-Paint-/Zoom-/Palette-Bereich, Fill/Stroke-Paintboxen, Linien-Stroke-Breite-Schutz | `src/ui/svg-edit-modal.ts`, `styles.css` |
-| done | `panels/TopPanel.*` | Top-Toolbar, Wireframe-Modus, Kontextleisten, Auswahl-/Text-/Path-/Elementpanels, Undo/Redo-State | `src/ui/svg-edit-modal.ts`, `styles.css` |
+| done | `panels/TopPanel.*` | Top-Toolbar, Wireframe-Modus, Original-Feldreihe fuer ID/Class/Angle/Opacity/CX/CY, Kontextleisten, Auswahl-/Text-/Path-/Elementpanels, Undo/Redo-State | `src/ui/svg-edit-modal.ts`, `styles.css` |
 | done | `panels/LeftPanel.*` | Werkzeugleiste, aktive Toolstates, Flyout-Gruppen inkl. Hauptwerkzeug im Popup, Zoom/Pan/Shape/Text/Path-Werkzeuge | `src/ui/svg-edit-modal.ts`, `styles.css` |
 | done | `contextmenu.js`, `dialogs/cmenu*.js/html` | Kontextmenues fuer Canvas und Layer, Click-away/Escape-Schliessen, disabled Items | `src/ui/svg-edit-modal.ts`, `styles.css` |
 | done | `components/PaintBox.js`, `components/seColorPicker.js`, `components/jgraduate/*` | PaintBox-Swatches fuer Fill/Stroke, Solid-Dialog mit RGB/HSV/Alpha/Hex, `none`/transparent, Schnellpalette sowie native Linear/Radial-Gradient-Paints umgesetzt; jGraduate selbst bewusst nicht 1:1 uebernommen | `src/ui/svg-edit-modal.ts`, `styles.css` |
@@ -40,7 +40,7 @@ Status:
 | reviewed | `components/seButton.js`, `sePlainBorderButton.js`, `sePlainMenuButton.js`, `seFlyingButton.js`, `seExplorerButton.js`, `seList.js`, `seListItem.js`, `seMenu.js`, `seMenuItem.js` | Web Components fuer Buttons/Menues/Listitems | Obsidian/lucide/native DOM in `src/ui/svg-edit-modal.ts`, `styles.css` |
 | reviewed | `dialogs/seSelectDialog.js`, `dialogs/seAlertDialog.js`, `dialogs/SePlainAlertDialog.js` | Auswahl-/Alert-Basisdialoge | Obsidian `Modal`/`Notice` in `src/ui/svg-edit-modal.ts` |
 | reviewed | `ConfigObj.js` | SVG-Edit-Defaultconfig; relevante Defaults direkt in `SvgCanvas`-Init und Preferences gesetzt | `src/ui/svg-edit-modal.ts` |
-| reviewed | `EditorStartup.js`, `Editor.js` | Standalone-Bootstrap, Extension-Lifecycle, Event-Bindings; durch Obsidian-Modal-Integration ersetzt | `src/ui/svg-edit-modal.ts`, `src/svg/types.ts` |
+| reviewed | `EditorStartup.js`, `Editor.js` | Standalone-Bootstrap, Extension-Lifecycle, Keyboard-Shortcuts, Zoom-Zentrierung und Event-Bindings; durch Obsidian-Modal-Integration ersetzt | `src/ui/svg-edit-modal.ts`, `src/svg/types.ts` |
 | reviewed | `MainMenu.js` | Export, Doc Properties, Preferences, Homepage umgesetzt; Open/Save sinnvoll durch Vault-Workflow ersetzt | `src/ui/svg-edit-modal.ts` |
 | reviewed | `Rulers.js`, `templates/rulersTemplate.html` | Ruler-Intervalle, Labels, Scroll-Sync, Units umgesetzt; Multi-Canvas-Splitting fuer >30000px Standalone-Extremfall im Modal nicht sinnvoll | `src/ui/rulers.ts`, `styles.css` |
 | reviewed | `extensions/ext-opensave/ext-opensave.js` | New/Open/Import/Save/Save As; Browser-FS-Access durch Obsidian-Vault, Import und Export ersetzt | `src/ui/svg-edit-modal.ts` |
@@ -58,6 +58,17 @@ Status:
 - Die Shape-Library ist bewusst als JSON-Kopie eingebunden, statt die Daten abzutippen.
 - Browser-native `prompt`/`confirm` sind im Editor-Modal durch Obsidian-Modals ersetzt.
 - Bottom-Panel wird vor Layer/Overview aufgebaut, damit es sichtbar bleibt; die Palette darf hoeher werden, damit die Original-Farbmatrix direkt erreichbar ist.
+- Zoom per Klick/Wheel folgt der Original-Logik aus `Editor.zoomChanged`: der SVG-Klickpunkt wird nach dem Zoom inklusive Canvas-Offset in die Workarea-Mitte gescrollt.
+- Keyboard-Shortcuts werden im Modal ueber DOM-Listener, einen aktiv gepushten Obsidian-`Scope` und einen App-Scope-Fallback abgefangen; anders als im Original-Browser-Editor verlassen wir uns nicht auf `BODY` als Event-Target, weil Obsidian Events vorher markieren kann.
+- Undo/Redo nutzt den echten `svgCanvas.undoMgr`; wie im Original wird die Auswahl dabei geleert, sodass die Auswahl-Iconleiste erst nach erneutem Objektklick wieder erscheint. Diese Iconleiste liegt in einer eigenen Top-Zeile.
+- Connector-Preview-Linien werden waehrend des Ziehens ans Ende des SVG-Inhalts gelegt, damit sie sichtbar ueber vorhandenen Objekten liegen; finalisierte Connectoren koennen danach wieder wie im Original einsortiert werden.
+- Die Top-Auswahl-/Kontextzeilen bleiben layout-stabil reserviert, damit ein erstmaliges Selektieren beim Drag die Workarea nicht unter der Maus verschiebt.
+- Textaenderungen werden fuer Undo/Redo gebuendelt committed, nicht pro Tastendruck.
+- Layer-Abfragen nutzen `getCurrentDrawing().getCurrentLayerName()` mit Fallback, weil die aktuell eingebundene svgcanvas-Version diese Methode nicht direkt auf `svgCanvas` bereitstellt.
+- Eine kleine Key-Debug-Anzeige in der Top-Leiste zeigt `seen`/`ignored`/`handled`, Taste, Ziel und Modus, um Obsidian-Keymap-Probleme sichtbar zu machen.
+- `rotate.svg` liegt als lokales Plugin-Asset unter `images/`, damit svgcanvas nicht vom Info-Ordner abhaengt.
+- Der Paint-Dialog hat neben dem S/V-Farbfeld jetzt einen Hue-Balken fuer das volle Farbspektrum.
+- Space-Panning verhindert auch wiederholte Space-Keydowns, damit die Workarea nicht nach unten scrollt.
 
 ## Ordnerabdeckung
 

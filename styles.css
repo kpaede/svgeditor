@@ -69,6 +69,7 @@
 }
 
 .svg-edit-top-main,
+.svg-edit-top-selection,
 .svg-edit-top-context,
 .svg-edit-top-text {
 	display: flex;
@@ -80,14 +81,19 @@
 	white-space: nowrap;
 }
 
+.svg-edit-top-selection,
 .svg-edit-top-context {
-	display: none;
+	visibility: hidden;
+	pointer-events: none;
 }
 
+.svg-edit-top-selection.is-visible,
 .svg-edit-top-context.is-visible {
-	display: flex;
+	visibility: visible;
+	pointer-events: auto;
 }
 
+.svg-edit-top-selection,
 .svg-edit-top-context,
 .svg-edit-top-text {
 	min-height: 26px;
@@ -177,6 +183,53 @@
 .svg-edit-brand-panel:focus-visible {
 	outline: 2px solid var(--interactive-accent);
 	outline-offset: -2px;
+}
+
+.svg-editor-inline-host,
+.svg-editor-inline-wrapper {
+	display: inline-block;
+	position: relative;
+	max-width: 100%;
+	line-height: 0;
+}
+
+.svg-editor-inline-host > img,
+.svg-editor-inline-host > a > img,
+.svg-editor-inline-wrapper > img,
+.svg-editor-inline-wrapper > a > img {
+	display: block;
+}
+
+.svg-editor-inline-edit-button {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	color: var(--text-normal);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	opacity: 0;
+	cursor: pointer;
+	transition: opacity 120ms ease-in-out;
+}
+
+.svg-editor-inline-host:hover .svg-editor-inline-edit-button,
+.svg-editor-inline-wrapper:hover .svg-editor-inline-edit-button,
+.svg-editor-inline-edit-button:focus-visible {
+	opacity: 1;
+}
+
+.svg-editor-inline-edit-button svg {
+	width: 16px;
+	height: 16px;
 }
 
 .svg-edit-brand-panel svg {
@@ -366,6 +419,36 @@
 	min-width: 0;
 	height: 22px;
 	padding: 0 2px;
+	text-align: center;
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-selected-field {
+	gap: 2px;
+	padding-inline: 1px;
+}
+
+.svg-edit-selected-field span {
+	max-width: none;
+	min-width: 0;
+	font-size: 11px;
+}
+
+.svg-edit-selected-text-field input {
+	width: 58px;
+	min-width: 0;
+	height: 20px;
+	padding: 0 4px;
+	background: var(--svg-edit-control);
+	border: 1px solid var(--svg-edit-line);
+}
+
+.svg-edit-selected-number-field input {
+	width: 36px;
+	min-width: 0;
+	height: 20px;
+	padding: 0 1px;
 	text-align: center;
 	background: var(--svg-edit-control);
 	border: 1px solid var(--svg-edit-line);
@@ -954,6 +1037,19 @@
 	white-space: nowrap;
 }
 
+.svg-edit-key-debug {
+	display: inline-flex;
+	align-items: center;
+	min-width: 260px;
+	max-width: 520px;
+	height: 28px;
+	overflow: hidden;
+	color: var(--text-muted);
+	font-size: 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .svg-edit-text-input {
 	position: absolute;
 	width: 1px;
@@ -1104,8 +1200,8 @@
 
 .svg-paint-solid-layout {
 	display: grid;
-	grid-template-columns: minmax(180px, 1fr) 72px 96px 128px;
-	gap: 10px;
+	grid-template-columns: minmax(180px, 1fr) 18px 72px 96px 128px;
+	gap: 8px;
 	align-items: start;
 }
 
@@ -1117,6 +1213,13 @@
 		linear-gradient(to right, #fff, #f00);
 	border: 1px solid var(--svg-edit-line);
 	cursor: crosshair;
+}
+
+.svg-paint-hue-bar {
+	height: 220px;
+	background: linear-gradient(to bottom, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+	border: 1px solid var(--svg-edit-line);
+	cursor: ns-resize;
 }
 
 .svg-paint-preview-column {

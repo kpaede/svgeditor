@@ -11,7 +11,7 @@ export type SvgCanvasWithExtras = SvgCanvas & {
 		}>;
 	}): Element;
 	setConfig(options: Record<string, unknown>): void;
-	updateCanvas(width: number, height: number): void;
+	updateCanvas(width: number, height: number): { x: number; y: number; old_x: number; old_y: number; d_x: number; d_y: number };
 	clear(): void;
 	setCurrentZoom(zoomLevel: number): void;
 	getResolution(): { w: number; h: number; zoom?: number };
@@ -48,6 +48,7 @@ export type SvgCanvasWithExtras = SvgCanvas & {
 	moveToBottomSelectedElement(): void;
 	moveUpDownSelected(direction: 'Up' | 'Down'): void;
 	changeSelectedAttribute(attr: string, value: string | number, elements?: Element[]): void;
+	changeSelectedAttributeNoUndo(attr: string, value: string | number, elements?: Element[]): void;
 	convertToPath(element?: Element): Element | null;
 	setBold(value: boolean): void;
 	setItalic(value: boolean): void;
@@ -76,11 +77,12 @@ export type SvgCanvasWithExtras = SvgCanvas & {
 		}>;
 		getNumLayers?(): number;
 		getLayerName?(index: number): string;
+		getCurrentLayerName?(): string;
 		hasLayer?(name: string): boolean;
 		setLayerOpacity?(name: string, opacity: number): void;
 		indexCurrentLayer?(): number;
 	};
-	getCurrentLayerName(): string;
+	getCurrentLayerName?(): string;
 	setCurrentLayer(name: string): boolean;
 	setCurrentLayerPosition(position: number): boolean;
 	setLayerVisibility(name: string, visible: boolean): void;
@@ -128,7 +130,11 @@ export type SvgCanvasWithExtras = SvgCanvas & {
 	undoMgr: {
 		getUndoStackSize(): number;
 		getRedoStackSize(): number;
+		undo(): void;
+		redo(): void;
+		addCommandToHistory(command: unknown): void;
 	};
+	history: Record<string, unknown>;
 	contentW: number;
 	contentH: number;
 };

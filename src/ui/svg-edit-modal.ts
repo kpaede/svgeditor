@@ -1,5 +1,6 @@
 import SvgCanvas from '@svgedit/svgcanvas';
-import { App, Modal, Notice, TFile, setIcon } from 'obsidian';
+import { App, Modal, Notice, Scope, TFile, setIcon } from 'obsidian';
+import type { KeymapEventHandler } from 'obsidian';
 import { SVG_MIME_PLACEHOLDER } from '../svg/blank-svg';
 import { getSvgDimensions } from '../svg/dimensions';
 import { modeLabel } from '../svg/modes';
@@ -197,11 +198,18 @@ export class SvgEditModal extends Modal {
 	private canvasWidth = 800;
 	private canvasHeight = 600;
 	private statusEl: HTMLElement | null = null;
+	private keyDebugEl: HTMLElement | null = null;
 	private selectedPanelEl: HTMLElement | null = null;
+	private selectionRowEl: HTMLElement | null = null;
 	private contextRowEl: HTMLElement | null = null;
 	private contextPathEl: HTMLElement | null = null;
 	private elementContextPanels = new Map<string, HTMLElement>();
 	private elementAttributeInputs: Array<{ panel: HTMLElement; attribute: string; input: HTMLInputElement }> = [];
+	private selectedIdInputEl: HTMLInputElement | null = null;
+	private selectedClassInputEl: HTMLInputElement | null = null;
+	private selectedAngleInputEl: HTMLInputElement | null = null;
+	private selectedOpacityInputEl: HTMLInputElement | null = null;
+	private selectedCenterInputs = new Map<'cx' | 'cy', HTMLInputElement>();
 	private xyPanelEl: HTMLElement | null = null;
 	private selectedPositionInputs = new Map<'x' | 'y', HTMLInputElement>();
 	private pathNodePanelEl: HTMLElement | null = null;
@@ -223,6 +231,10 @@ export class SvgEditModal extends Modal {
 	private textPanelEl: HTMLElement | null = null;
 	private textRowEl: HTMLElement | null = null;
 	private textInputEl: HTMLInputElement | null = null;
+	private textUndoTimer: number | null = null;
+	private pendingTextUndo: { element: Element; oldValue: string } | null = null;
+	private shortcutScope: Scope | null = null;
+	private appScopeHandlers: KeymapEventHandler[] = [];
 	private bodyEl: HTMLElement | null = null;
 	private canvasHostEl: HTMLElement | null = null;
 	private rulerXEl: HTMLElement | null = null;
@@ -283,6 +295,10 @@ export class SvgEditModal extends Modal {
 
 		const source = await this.app.vault.read(this.file);
 		this.buildLayout(source.trim() ? source : this.fallbackSvg);
+		this.registerKeyboardShortcuts();
+		if (this.shortcutScope) {
+			this.app.keymap.pushScope(this.shortcutScope);
+		}
 		window.addEventListener('keydown', this.keydownHandler, true);
 		window.addEventListener('keyup', this.keyupHandler, true);
 		window.addEventListener('mousemove', this.workareaMouseMoveHandler, true);
@@ -308,12 +324,23 @@ export class SvgEditModal extends Modal {
 		document.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keyup', this.keyupHandler, true);
+		if (this.shortcutScope) {
+			this.app.keymap.popScope(this.shortcutScope);
+			this.shortcutScope = null;
+		}
+		this.appScopeHandlers.forEach((handler) => this.app.scope.unregister(handler));
+		this.appScopeHandlers = [];
 		this.rulers?.destroy();
 		this.rulers = null;
 		if (this.draftSaveTimer !== null) {
 			window.clearTimeout(this.draftSaveTimer);
 			this.draftSaveTimer = null;
 		}
+		if (this.textUndoTimer !== null) {
+			window.clearTimeout(this.textUndoTimer);
+			this.textUndoTimer = null;
+		}
+		this.commitPendingTextUndo();
 		this.contentEl.empty();
 		this.canvas = null;
 	}
@@ -351,6 +378,8 @@ export class SvgEditModal extends Modal {
 		const shellEl = this.contentEl.createDiv({ cls: 'svg-edit-shell' });
 		const topEl = shellEl.createDiv({ cls: 'svg-edit-top', attr: { id: 'tools_top' } });
 		const mainTopEl = topEl.createDiv({ cls: 'svg-edit-top-main' });
+		const selectionTopEl = topEl.createDiv({ cls: 'svg-edit-top-selection' });
+		this.selectionRowEl = selectionTopEl;
 		const contextTopEl = topEl.createDiv({ cls: 'svg-edit-top-context' });
 		this.contextRowEl = contextTopEl;
 		this.contextPathEl = topEl.createDiv({ cls: 'svg-edit-context-path' });
@@ -368,7 +397,7 @@ export class SvgEditModal extends Modal {
 		const rulerYEl = canvasFrameEl.createDiv({ cls: 'svg-edit-ruler svg-edit-ruler-y', attr: { id: 'ruler_y' } });
 		this.rulerYEl = rulerYEl;
 		rulerYEl.createDiv({ cls: 'svg-edit-ruler-inner' }).createEl('canvas', { attr: { width: '15', height: '1' } });
-		this.canvasHostEl = canvasFrameEl.createDiv({ cls: 'svg-edit-canvas-host is-grid-visible', attr: { id: 'workarea' } });
+		this.canvasHostEl = canvasFrameEl.createDiv({ cls: 'svg-edit-canvas-host is-grid-visible', attr: { id: 'workarea', tabindex: '0' } });
 		this.eyedropperCursorEl = canvasFrameEl.createDiv({ cls: 'svg-edit-eyedropper-cursor' });
 		this.contextMenuEl = shellEl.createDiv({ cls: 'svg-edit-context-menu' });
 		const layerEl = bodyEl.createDiv({ cls: 'svg-edit-layer-panel', attr: { id: 'layer_view_panel' } });
@@ -394,7 +423,8 @@ export class SvgEditModal extends Modal {
 			snappingStep: this.snappingStep,
 			gridColor: this.gridColor,
 			show_outside_canvas: true,
-			selectNew: true
+			selectNew: true,
+			imgPath: '.obsidian/plugins/svgeditor/images'
 		}) as SvgCanvasWithExtras;
 
 		this.canvas.updateCanvas(dimensions.width, dimensions.height);
@@ -407,7 +437,7 @@ export class SvgEditModal extends Modal {
 		}, this.baseUnit);
 		this.connectCanvasEvents();
 		this.connectWorkareaNavigation();
-		this.buildTopToolbar(mainTopEl, contextTopEl, textTopEl);
+		this.buildTopToolbar(mainTopEl, selectionTopEl, contextTopEl, textTopEl);
 		this.buildLeftToolbar(leftEl);
 		this.buildBottomToolbar(bottomEl);
 		this.buildLayerPanel(layerEl);
@@ -417,7 +447,7 @@ export class SvgEditModal extends Modal {
 		window.requestAnimationFrame(() => this.updateCanvasViewport({ center: true }));
 	}
 
-	private buildTopToolbar(toolbarEl: HTMLElement, contextEl: HTMLElement, textEl: HTMLElement): void {
+	private buildTopToolbar(toolbarEl: HTMLElement, selectionEl: HTMLElement, contextEl: HTMLElement, textEl: HTMLElement): void {
 		const brandPanel = toolbarEl.createDiv({
 			cls: 'svg-edit-brand-panel',
 			attr: {
@@ -464,7 +494,7 @@ export class SvgEditModal extends Modal {
 		this.redoButtonEl = this.createIconButton(historyPanel, 'Redo [Ctrl+Y]', 'redo-2');
 		this.redoButtonEl.addEventListener('click', () => this.redo());
 
-		const selectedPanel = this.addPanel(toolbarEl, 'selected_panel');
+		const selectedPanel = this.addPanel(selectionEl, 'selected_panel');
 		selectedPanel.addClass('svg-edit-selection-panel');
 		this.selectedPanelEl = selectedPanel;
 		this.addActionButton(selectedPanel, 'Duplicate [D]', 'copy-plus', () => this.withDirtyAction('Duplicated', () => this.canvas?.cloneSelectedElements(20, 20)));
@@ -489,8 +519,18 @@ export class SvgEditModal extends Modal {
 		this.addActionButton(selectedPanel, 'Create Link', 'link', () => this.createOrEditLink());
 		this.addActionButton(selectedPanel, 'Remove Link', 'unlink', () => this.withDirtyAction('Link removed', () => this.canvas?.removeHyperlink()));
 		this.addActionButton(selectedPanel, 'Image URL', 'image-up', () => this.setSelectedImageUrl());
-		this.addActionButton(selectedPanel, 'Element ID', 'badge', () => this.setSelectedAttribute('id', 'Element ID'));
-		this.addActionButton(selectedPanel, 'Element Class', 'tags', () => this.setSelectedAttribute('class', 'Element Class'));
+		this.selectedIdInputEl = this.addSelectedTextField(selectedPanel, 'id', 'Element ID', (value) => this.changeSelectedTextAttribute('id', value));
+		this.selectedClassInputEl = this.addSelectedTextField(selectedPanel, 'Class', 'Element Class', (value) => this.changeSelectedTextAttribute('class', value));
+		this.selectedAngleInputEl = this.addSelectedNumberField(selectedPanel, 'Rot', -180, 180, 5, (value) => {
+			this.canvas?.setRotationAngle(value);
+			this.markDirty('Rotation changed');
+		});
+		this.selectedOpacityInputEl = this.addSelectedNumberField(selectedPanel, 'Opac', 0, 100, 5, (value) => {
+			this.canvas?.setOpacity(value / 100);
+			this.markDirty('Opacity changed');
+		});
+		this.selectedCenterInputs.set('cx', this.addSelectedNumberField(selectedPanel, 'cx', -100000, 100000, 1, (value) => this.moveSelectionCenter('cx', value)));
+		this.selectedCenterInputs.set('cy', this.addSelectedNumberField(selectedPanel, 'cy', -100000, 100000, 1, (value) => this.moveSelectionCenter('cy', value)));
 
 		const transformPanel = this.addPanel(contextEl, 'transform_panel', 'svg-edit-context-panel svg-edit-transform-panel');
 		transformPanel.addClass('is-visible');
@@ -568,6 +608,7 @@ export class SvgEditModal extends Modal {
 		this.addActionButton(documentPanel, 'Export Image', 'download', () => this.openExportDialog());
 		this.addActionButton(documentPanel, 'Save [Ctrl+S]', 'save', () => this.save());
 		this.statusEl = documentPanel.createDiv({ cls: 'svg-edit-status', text: 'Ready' });
+		this.keyDebugEl = documentPanel.createDiv({ cls: 'svg-edit-key-debug', text: 'Key debug: waiting' });
 		this.updateContextPanels();
 	}
 
@@ -1019,6 +1060,49 @@ export class SvgEditModal extends Modal {
 		button.addEventListener('click', callback);
 	}
 
+	private addSelectedTextField(parentEl: HTMLElement, label: string, title: string, onChange: (value: string) => void): HTMLInputElement {
+		const wrapper = parentEl.createDiv({ cls: 'svg-edit-control svg-edit-selected-field svg-edit-selected-text-field' });
+		wrapper.createSpan({ text: label });
+		const input = wrapper.createEl('input', {
+			attr: {
+				type: 'text',
+				title,
+				'aria-label': title
+			}
+		});
+		input.addEventListener('change', () => {
+			onChange(input.value);
+			input.blur();
+			this.canvasHostEl?.focus({ preventScroll: true });
+		});
+		return input;
+	}
+
+	private addSelectedNumberField(parentEl: HTMLElement, label: string, min: number, max: number, step: number, onChange: (value: number) => void): HTMLInputElement {
+		const wrapper = parentEl.createDiv({ cls: 'svg-edit-control svg-edit-selected-field svg-edit-selected-number-field' });
+		wrapper.createSpan({ text: label });
+		const input = wrapper.createEl('input', {
+			attr: {
+				type: 'number',
+				min: String(min),
+				max: String(max),
+				step: String(step),
+				title: label,
+				'aria-label': label
+			}
+		});
+		input.addEventListener('change', () => {
+			const value = Number(input.value);
+			if (Number.isFinite(value)) {
+				onChange(value);
+			}
+			input.blur();
+			this.canvasHostEl?.focus({ preventScroll: true });
+		});
+		this.attachNumberStepper(wrapper, input, min, max, step, 0, onChange);
+		return input;
+	}
+
 	private createIconButton(parentEl: HTMLElement, label: string, icon: string, id?: string): HTMLButtonElement {
 		const button = parentEl.createEl('button', {
 			cls: 'svg-edit-icon-button',
@@ -1461,7 +1545,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const currentName = this.canvas.getCurrentLayerName();
+		const currentName = this.currentLayerName();
 		this.getLayerInfos().forEach((layer) => {
 			this.canvas?.setLayerVisibility(layer.name, !this.layerViewActive || layer.name === currentName);
 		});
@@ -1536,7 +1620,7 @@ export class SvgEditModal extends Modal {
 		}
 
 		const drawing = this.canvas.getCurrentDrawing();
-		const currentName = this.canvas.getCurrentLayerName();
+		const currentName = this.currentLayerName();
 		if (typeof drawing.getNumLayers === 'function' && typeof drawing.getLayerName === 'function') {
 			const layers: LayerInfo[] = [];
 			for (let index = 0; index < drawing.getNumLayers(); index += 1) {
@@ -1564,6 +1648,17 @@ export class SvgEditModal extends Modal {
 
 	private currentLayerInfo(): LayerInfo | null {
 		return this.getLayerInfos().find((layer) => layer.current) ?? null;
+	}
+
+	private currentLayerName(): string {
+		if (!this.canvas) {
+			return 'Layer 1';
+		}
+		const drawing = this.canvas.getCurrentDrawing();
+		return drawing.getCurrentLayerName?.()
+			?? this.canvas.getCurrentLayerName?.()
+			?? drawing.getLayerName?.(drawing.indexCurrentLayer?.() ?? 0)
+			?? 'Layer 1';
 	}
 
 	private hasLayer(name: string): boolean {
@@ -1724,9 +1819,9 @@ export class SvgEditModal extends Modal {
 
 		this.canvas.textActions.setInputElem(this.textInputEl);
 		this.textInputEl.addEventListener('input', () => {
-			this.canvas?.setTextContent(this.textInputEl?.value ?? '');
-			this.markDirty('Text changed');
+			this.changeTextContentDebounced(this.textInputEl?.value ?? '');
 		});
+		this.textInputEl.addEventListener('blur', () => this.commitPendingTextUndo());
 		this.canvas.bind('changed', () => {
 			this.markDirty('Changed');
 			this.syncMarkerColors();
@@ -1753,6 +1848,27 @@ export class SvgEditModal extends Modal {
 		this.canvasHostEl.addEventListener('contextmenu', this.workareaContextMenuHandler, true);
 		this.canvasHostEl.addEventListener('dragover', this.workareaDragOverHandler);
 		this.canvasHostEl.addEventListener('drop', this.workareaDropHandler);
+	}
+
+	private registerKeyboardShortcuts(): void {
+		const shortcutScope = new Scope(this.scope);
+		this.shortcutScope = shortcutScope;
+		const handler = (event: KeyboardEvent) => {
+			this.handleKeydown(event);
+		};
+		shortcutScope.register(null, null, handler);
+		this.scope.register(null, null, handler);
+		this.appScopeHandlers.push(this.app.scope.register(null, null, handler));
+		const keys = [
+			'Delete', 'Backspace', 'Escape', 'Tab', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+			'a', 'A', 'c', 'C', 'd', 'D', 'e', 'E', 'g', 'G', 'l', 'L', 'o', 'O', 'p', 'P', 'q', 'Q',
+			'r', 'R', 's', 'S', 't', 'T', 'u', 'U', 'v', 'V', 'x', 'X', 'y', 'Y', 'z', 'Z', '[', ']'
+		];
+		keys.forEach((key) => {
+			shortcutScope.register(null, key, handler);
+			this.scope.register(null, key, handler);
+			this.appScopeHandlers.push(this.app.scope.register(null, key, handler));
+		});
 	}
 
 	private loadSvg(source: string): void {
@@ -1803,7 +1919,9 @@ export class SvgEditModal extends Modal {
 		const hasSelection = selectedElements.length > 0;
 		const selectedText = this.getSelectedTextElements();
 		const showTextPanel = mode === 'text' || selectedText.length > 0;
+		this.syncHiddenTextInput(selectedText);
 		this.updateHistoryButtonState();
+		this.selectionRowEl?.toggleClass('is-visible', hasSelection);
 		this.selectedPanelEl?.toggleClass('is-visible', hasSelection);
 		this.contextRowEl?.toggleClass('is-visible', hasSelection);
 		this.updateSelectedPositionPanel(selectedElements);
@@ -1816,6 +1934,17 @@ export class SvgEditModal extends Modal {
 		this.updatePolystarPanels(selectedElements);
 		this.textPanelEl?.toggleClass('is-visible', showTextPanel);
 		this.textRowEl?.toggleClass('is-visible', showTextPanel);
+	}
+
+	private syncHiddenTextInput(selectedText: Element[]): void {
+		if (!this.textInputEl || this.canvas?.getMode() === 'textedit') {
+			return;
+		}
+		const text = selectedText.length === 1 ? selectedText[0].textContent ?? '' : '';
+		if (this.textInputEl.value !== text) {
+			this.textInputEl.value = text;
+			this.textInputEl.setSelectionRange(text.length, text.length);
+		}
 	}
 
 	private updateHistoryButtonState(): void {
@@ -1850,6 +1979,7 @@ export class SvgEditModal extends Modal {
 			this.reorientButtonEl.disabled = !isReorientablePath || angle === 0;
 			this.reorientButtonEl.toggleClass('is-disabled', this.reorientButtonEl.disabled);
 		}
+		this.updateSelectedPropertyFields(selectedElements);
 
 		if (!element || !showPanel || !this.canvas) {
 			return;
@@ -1867,6 +1997,31 @@ export class SvgEditModal extends Modal {
 
 		this.setSelectedPositionInputValue('x', x);
 		this.setSelectedPositionInputValue('y', y);
+	}
+
+	private updateSelectedPropertyFields(selectedElements: Element[]): void {
+		const element = selectedElements.length === 1 ? selectedElements[0] : null;
+		const disabled = !element;
+		this.setInputValue(this.selectedIdInputEl, element?.id ?? '', disabled);
+		this.setInputValue(this.selectedClassInputEl, element?.getAttribute('class') ?? '', disabled);
+		const angle = element && this.canvas ? this.canvas.getRotationAngle(element) : 0;
+		this.setInputValue(this.selectedAngleInputEl, String(Math.round(angle * 100) / 100), disabled);
+		const opacity = Number(element?.getAttribute('opacity') ?? '1');
+		this.setInputValue(this.selectedOpacityInputEl, String(Math.round((Number.isFinite(opacity) ? opacity : 1) * 100)), disabled);
+
+		const bbox = element && this.canvas ? this.canvas.getStrokedBBox([element]) : null;
+		this.setInputValue(this.selectedCenterInputs.get('cx') ?? null, bbox ? String(Math.round((bbox.x + bbox.width / 2) * 100) / 100) : '', disabled);
+		this.setInputValue(this.selectedCenterInputs.get('cy') ?? null, bbox ? String(Math.round((bbox.y + bbox.height / 2) * 100) / 100) : '', disabled);
+	}
+
+	private setInputValue(input: HTMLInputElement | null, value: string, disabled = false): void {
+		if (!input) {
+			return;
+		}
+		input.disabled = disabled;
+		if (document.activeElement !== input) {
+			input.value = value;
+		}
 	}
 
 	private setSelectedPositionInputValue(axis: 'x' | 'y', value: number): void {
@@ -2084,23 +2239,73 @@ export class SvgEditModal extends Modal {
 	}
 
 	private undo(): void {
+		this.commitPendingTextUndo();
 		if (!this.canvas || this.canvas.undoMgr.getUndoStackSize() === 0) {
 			return;
 		}
 
-		this.canvas.undo();
+		this.canvas.undoMgr.undo();
 		this.refreshLayerPanel();
 		this.updateContextPanels();
 	}
 
 	private redo(): void {
+		this.commitPendingTextUndo();
 		if (!this.canvas || this.canvas.undoMgr.getRedoStackSize() === 0) {
 			return;
 		}
 
-		this.canvas.redo();
+		this.canvas.undoMgr.redo();
 		this.refreshLayerPanel();
 		this.updateContextPanels();
+	}
+
+	private changeTextContentDebounced(value: string): void {
+		if (!this.canvas) {
+			return;
+		}
+
+		const textElement = this.canvas.getSelectedElements().find((element) => element?.tagName.toLowerCase() === 'text') ?? null;
+		if (!textElement) {
+			return;
+		}
+
+		if (!this.pendingTextUndo || this.pendingTextUndo.element !== textElement) {
+			this.commitPendingTextUndo();
+			this.pendingTextUndo = { element: textElement, oldValue: textElement.textContent ?? '' };
+		}
+
+		this.canvas.changeSelectedAttributeNoUndo('#text', value, [textElement]);
+		this.canvas.textActions.init(value);
+		this.canvas.textActions.setCursor();
+		this.markDirty('Text changed');
+
+		if (this.textUndoTimer !== null) {
+			window.clearTimeout(this.textUndoTimer);
+		}
+		this.textUndoTimer = window.setTimeout(() => {
+			this.textUndoTimer = null;
+			this.commitPendingTextUndo();
+		}, 900);
+	}
+
+	private commitPendingTextUndo(): void {
+		if (!this.canvas || !this.pendingTextUndo) {
+			return;
+		}
+
+		const { element, oldValue } = this.pendingTextUndo;
+		this.pendingTextUndo = null;
+		const newValue = element.textContent ?? '';
+		if (oldValue === newValue) {
+			return;
+		}
+
+		const history = this.canvas.history as {
+			ChangeElementCommand: new (element: Element, attrs: Record<string, string>, text?: string) => unknown;
+		};
+		this.canvas.undoMgr.addCommandToHistory(new history.ChangeElementCommand(element, { '#text': oldValue }, 'text'));
+		this.updateHistoryButtonState();
 	}
 
 	private copySelection(): void {
@@ -2174,7 +2379,7 @@ export class SvgEditModal extends Modal {
 		}
 
 		const rootButton = this.contextPathEl.createEl('button', {
-			text: this.canvas.getCurrentLayerName(),
+			text: this.currentLayerName(),
 			attr: { type: 'button' }
 		});
 		rootButton.addEventListener('click', () => this.leaveCurrentContext());
@@ -2446,6 +2651,19 @@ export class SvgEditModal extends Modal {
 		this.markDirty(`${label} changed`);
 	}
 
+	private changeSelectedTextAttribute(attribute: string, value: string): void {
+		if (!this.canvas) {
+			return;
+		}
+		const selected = this.canvas.getSelectedElements().filter(Boolean);
+		if (selected.length !== 1) {
+			return;
+		}
+		this.canvas.changeSelectedAttribute(attribute, value, selected);
+		this.markDirty(`${attribute} changed`);
+		this.updateContextPanels();
+	}
+
 	private changeSelectedNumericAttribute(attribute: string, value: number): void {
 		if (!this.canvas) {
 			return;
@@ -2458,6 +2676,28 @@ export class SvgEditModal extends Modal {
 
 		this.canvas.changeSelectedAttribute(attribute, value, selected);
 		this.markDirty(`${attribute} changed`);
+		this.updateContextPanels();
+	}
+
+	private moveSelectionCenter(axis: 'cx' | 'cy', value: number): void {
+		if (!this.canvas) {
+			return;
+		}
+		const selected = this.canvas.getSelectedElements().filter(Boolean);
+		if (selected.length !== 1) {
+			return;
+		}
+		const bbox = this.canvas.getStrokedBBox(selected);
+		if (!bbox) {
+			return;
+		}
+		const current = axis === 'cx' ? bbox.x + bbox.width / 2 : bbox.y + bbox.height / 2;
+		const delta = value - current;
+		if (!Number.isFinite(delta) || delta === 0) {
+			return;
+		}
+		this.canvas.moveSelectedElements(axis === 'cx' ? delta : 0, axis === 'cy' ? delta : 0);
+		this.markDirty('Selection moved');
 		this.updateContextPanels();
 	}
 
@@ -3071,6 +3311,7 @@ export class SvgEditModal extends Modal {
 				style: 'pointer-events:none'
 			}
 		}) as SVGPolylineElement;
+		line.parentNode?.appendChild(line);
 		this.connectorDrag = { startElement, line };
 	}
 
@@ -3530,23 +3771,16 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const canvasEl = this.canvasHostEl.querySelector<HTMLElement>('#svgcanvas');
-		const rect = canvasEl?.getBoundingClientRect() ?? this.canvasHostEl.getBoundingClientRect();
-		const width = canvasEl?.clientWidth || this.currentCanvasDisplaySize().width;
-		const height = canvasEl?.clientHeight || this.currentCanvasDisplaySize().height;
-		const xRatio = Math.max(0, Math.min(1, (clientX - rect.left) / width));
-		const yRatio = Math.max(0, Math.min(1, (clientY - rect.top) / height));
-		const nextWidth = Math.max(this.canvasHostEl.clientWidth, this.canvasWidth * zoom * 3);
-		const nextHeight = Math.max(this.canvasHostEl.clientHeight, this.canvasHeight * zoom * 3);
-		this.canvas.setCurrentZoom(zoom);
-		this.updateCanvasViewport({
-			centerAt: {
-				x: xRatio * nextWidth,
-				y: yRatio * nextHeight
-			}
-		});
-		this.updateZoomInput(zoom);
-		this.setStatus(`Zoom ${Math.round(zoom * 100)}%`);
+		const point = this.clientPointToSvg(clientX, clientY);
+		const factor = zoom / Math.max(this.canvas.getZoom(), 0.001);
+		const zoomInfo = this.canvas.setBBoxZoom({ x: point.x, y: point.y, width: 0, height: 0, factor }, this.workareaWidth(), this.workareaHeight());
+		if (!zoomInfo) {
+			this.setZoom(zoom);
+			return;
+		}
+		this.updateCanvasViewport({ centerAt: this.zoomBoxCenter(zoomInfo.bbox, zoomInfo.zoom) });
+		this.updateZoomInput(zoomInfo.zoom);
+		this.setStatus(`Zoom ${Math.round(zoomInfo.zoom * 100)}%`);
 	}
 
 	private updateZoomInput(zoom = this.canvas?.getZoom() ?? 1): void {
@@ -3573,13 +3807,13 @@ export class SvgEditModal extends Modal {
 			canvasEl.style.height = `${height}px`;
 		}
 
-		this.canvas.updateCanvas(width, height);
+		const offset = this.canvas.updateCanvas(width, height);
 		this.updateGridAppearance(zoom);
 		this.updateWireframeRules();
 
 		if (options.centerAt) {
-			this.canvasHostEl.scrollLeft = options.centerAt.x - this.canvasHostEl.clientWidth / 2;
-			this.canvasHostEl.scrollTop = options.centerAt.y - this.canvasHostEl.clientHeight / 2;
+			this.canvasHostEl.scrollLeft = options.centerAt.x + offset.x - this.canvasHostEl.clientWidth / 2;
+			this.canvasHostEl.scrollTop = options.centerAt.y + offset.y - this.canvasHostEl.clientHeight / 2;
 		} else if (options.preserve) {
 			this.canvasHostEl.scrollLeft = width * options.preserve.xRatio - options.preserve.offsetX;
 			this.canvasHostEl.scrollTop = height * options.preserve.yRatio - options.preserve.offsetY;
@@ -3753,6 +3987,9 @@ export class SvgEditModal extends Modal {
 		if (!this.canvas || !this.canvasHostEl) {
 			return;
 		}
+		if (!this.isEditableKeyTarget(event.target instanceof Element ? event.target : null)) {
+			this.canvasHostEl.focus({ preventScroll: true });
+		}
 		if (event.button !== 2) {
 			this.closeContextMenu();
 		}
@@ -3783,6 +4020,9 @@ export class SvgEditModal extends Modal {
 		}
 
 		if (mode === 'zoom' && event.button === 0) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
 			this.zoomPointerDown = { x: event.clientX, y: event.clientY };
 		}
 	}
@@ -4255,8 +4495,14 @@ export class SvgEditModal extends Modal {
 	}
 
 	private handleKeydown(event: KeyboardEvent): void {
+		const handledEvent = event as KeyboardEvent & { svgEditHandled?: boolean };
+		if (handledEvent.svgEditHandled) {
+			return;
+		}
 		const target = event.target instanceof Element ? event.target : null;
+		this.updateKeyDebug(event, target, 'seen');
 		if (!this.shouldHandleKeydown(event, target)) {
+			this.updateKeyDebug(event, target, 'ignored');
 			return;
 		}
 
@@ -4306,6 +4552,12 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
+		if (!isTyping && modifier && isShortcut('d')) {
+			this.consumeShortcut(event);
+			this.withDirtyAction('Duplicated', () => this.canvas?.cloneSelectedElements(20, 20));
+			return;
+		}
+
 		if (!isTyping && modifier && isShortcut('x')) {
 			this.consumeShortcut(event);
 			this.cutSelection();
@@ -4319,6 +4571,13 @@ export class SvgEditModal extends Modal {
 		}
 
 		if (!isTyping && modifier && isShortcut('a')) {
+			this.consumeShortcut(event);
+			this.canvas?.selectAllInCurrentLayer();
+			this.setStatus('Selected all in current layer');
+			return;
+		}
+
+		if (!isTyping && !modifier && !event.altKey && key === 'a') {
 			this.consumeShortcut(event);
 			this.canvas?.selectAllInCurrentLayer();
 			this.setStatus('Selected all in current layer');
@@ -4359,9 +4618,11 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		if (event.code === 'Space' && !event.repeat) {
+		if (event.code === 'Space' || key === ' ' || key === 'spacebar') {
 			this.consumeShortcut(event);
-			this.startTemporaryPanning();
+			if (!event.repeat) {
+				this.startTemporaryPanning();
+			}
 			return;
 		}
 
@@ -4378,6 +4639,18 @@ export class SvgEditModal extends Modal {
 		if (key === 'tab') {
 			this.consumeShortcut(event);
 			this.cycleSelection(event.shiftKey ? 0 : 1);
+			return;
+		}
+
+		if (event.shiftKey && !modifier && !event.altKey && key === 'o') {
+			this.consumeShortcut(event);
+			this.cycleSelection(0);
+			return;
+		}
+
+		if (event.shiftKey && !modifier && !event.altKey && key === 'p') {
+			this.consumeShortcut(event);
+			this.cycleSelection(1);
 			return;
 		}
 
@@ -4441,7 +4714,8 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		if (event.code === 'Space') {
+		const key = event.key.toLowerCase();
+		if (event.code === 'Space' || key === ' ' || key === 'spacebar') {
 			this.consumeShortcut(event);
 			this.stopTemporaryPanning();
 		}
@@ -4474,35 +4748,59 @@ export class SvgEditModal extends Modal {
 	}
 
 	private shouldHandleKeydown(event: KeyboardEvent, target: Element | null): boolean {
-		if (!this.modalEl.isConnected || event.defaultPrevented) {
+		if (!this.modalEl.isConnected) {
 			return false;
 		}
 
-		if (target && this.modalEl.contains(target)) {
+		const otherModal = target?.closest('.modal, .modal-container');
+		if (otherModal && otherModal !== this.modalEl && !this.modalEl.contains(otherModal)) {
+			return false;
+		}
+
+		if (!target || target === document.body || target === document.documentElement) {
 			return true;
 		}
 
-		if (target?.closest('.modal, .modal-container')) {
-			return false;
-		}
-
-		return true;
+		return this.modalEl.contains(target) || Boolean(target.closest('#workarea, #svgcanvas, #svgcontent'));
 	}
 
 	private isEditableKeyTarget(target: Element | null): boolean {
+		if (target === this.textInputEl) {
+			return this.canvas?.getMode() === 'textedit';
+		}
 		return Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
 	}
 
 	private consumeShortcut(event: KeyboardEvent): void {
+		(event as KeyboardEvent & { svgEditHandled?: boolean }).svgEditHandled = true;
+		this.updateKeyDebug(event, event.target instanceof Element ? event.target : null, 'handled');
 		event.preventDefault();
 		event.stopPropagation();
 		event.stopImmediatePropagation();
+	}
+
+	private updateKeyDebug(event: KeyboardEvent, target: Element | null, state: 'seen' | 'ignored' | 'handled'): void {
+		if (!this.keyDebugEl) {
+			return;
+		}
+		const targetName = target
+			? `${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ''}${target.className && typeof target.className === 'string' ? `.${target.className.split(/\s+/).filter(Boolean).slice(0, 2).join('.')}` : ''}`
+			: 'none';
+		const modifiers = [
+			event.ctrlKey ? 'Ctrl' : '',
+			event.metaKey ? 'Meta' : '',
+			event.altKey ? 'Alt' : '',
+			event.shiftKey ? 'Shift' : ''
+		].filter(Boolean).join('+');
+		const key = `${modifiers ? `${modifiers}+` : ''}${event.key || event.code}`;
+		this.keyDebugEl.setText(`Key debug: ${state} ${key} code=${event.code} target=${targetName} prevented=${event.defaultPrevented ? 'yes' : 'no'} mode=${this.canvas?.getMode?.() ?? 'none'}`);
 	}
 
 	private markDirty(message: string): void {
 		this.dirty = true;
 		this.scheduleStoredDraft();
 		this.setStatus(`${message} - unsaved`);
+		window.requestAnimationFrame(() => this.updateHistoryButtonState());
 	}
 
 	private setStatus(message: string): void {
@@ -4877,6 +5175,7 @@ class SvgPaintModal extends Modal {
 	private renderSolidPanel(parentEl: HTMLElement): void {
 		const layoutEl = parentEl.createDiv({ cls: 'svg-paint-solid-layout' });
 		const mapEl = layoutEl.createDiv({ cls: 'svg-paint-map' });
+		const hueEl = layoutEl.createDiv({ cls: 'svg-paint-hue-bar' });
 		const previewColumnEl = layoutEl.createDiv({ cls: 'svg-paint-preview-column' });
 		previewColumnEl.createSpan({ cls: 'svg-paint-preview-caption', text: 'new' });
 		const newPreviewEl = previewColumnEl.createDiv({ cls: 'svg-paint-large-preview' });
@@ -4910,16 +5209,26 @@ class SvgPaintModal extends Modal {
 			newPreviewEl.style.background = this.activeType === 'none' ? 'transparent' : this.solidColor;
 			newPreviewEl.toggleClass('is-none', this.activeType === 'none');
 		};
+		const setColorFromHsv = (h: number, s: number, v: number) => {
+			const picked = SvgPaintModal.hsvToRgb(h, s, v);
+			this.solidColor = SvgPaintModal.rgbToHex(picked.r, picked.g, picked.b);
+			this.activeType = 'solidColor';
+			syncFields();
+		};
 		const pickFromMap = (event: PointerEvent) => {
 			const rect = mapEl.getBoundingClientRect();
 			const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
 			const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
 			const currentRgb = SvgPaintModal.hexToRgb(this.solidColor);
 			const current = SvgPaintModal.rgbToHsv(currentRgb.r, currentRgb.g, currentRgb.b);
-			const picked = SvgPaintModal.hsvToRgb(current.h, Math.round(x * 100), Math.round((1 - y) * 100));
-			this.solidColor = SvgPaintModal.rgbToHex(picked.r, picked.g, picked.b);
-			this.activeType = 'solidColor';
-			syncFields();
+			setColorFromHsv(current.h, Math.round(x * 100), Math.round((1 - y) * 100));
+		};
+		const pickHue = (event: PointerEvent) => {
+			const rect = hueEl.getBoundingClientRect();
+			const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+			const currentRgb = SvgPaintModal.hexToRgb(this.solidColor);
+			const current = SvgPaintModal.rgbToHsv(currentRgb.r, currentRgb.g, currentRgb.b);
+			setColorFromHsv(Math.round(y * 360), current.s, current.v);
 		};
 		const syncFromRgb = () => {
 			this.solidColor = SvgPaintModal.rgbToHex(Number(rInput.value), Number(gInput.value), Number(bInput.value));
@@ -4937,6 +5246,17 @@ class SvgPaintModal extends Modal {
 				return;
 			}
 			pickFromMap(event);
+		});
+		hueEl.addEventListener('pointerdown', (event) => {
+			event.preventDefault();
+			hueEl.setPointerCapture(event.pointerId);
+			pickHue(event);
+		});
+		hueEl.addEventListener('pointermove', (event) => {
+			if ((event.buttons & 1) === 0) {
+				return;
+			}
+			pickHue(event);
 		});
 		[rInput, gInput, bInput, aInput].forEach((input) => input.addEventListener('change', syncFromRgb));
 		hexInput.addEventListener('change', () => {
