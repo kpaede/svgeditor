@@ -1,10 +1,10 @@
 {
 	"id": "svgeditor",
-	"name": "svgeditOR",
+	"name": "svgeditor",
 	"version": ".0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Edit SVG files directly in Obsidian with SVG-Edit.",
-	"author": "",
-	"authorUrl": "",
+	"author": "Kornelius Paede",
+	"authorUrl": "https://dramaturgie.lol/",
 	"isDesktopOnly": false
 }
