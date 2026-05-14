@@ -126,7 +126,7 @@ export class Rulers {
 		}
 
 		const oldCanvas = inner.querySelector('canvas');
-		const canvas = document.createElement('canvas');
+		const canvas = this.workarea.ownerDocument!.createElement('canvas');
 		if (oldCanvas) {
 			oldCanvas.replaceWith(canvas);
 		} else {

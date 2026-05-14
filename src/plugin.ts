@@ -5,7 +5,7 @@ import { SvgEditModal } from './ui/svg-edit-modal';
 import { buildVaultPath } from './utils/path';
 
 export default class SvgEditPlugin extends Plugin {
-	settings: SvgEditorSettings;
+	settings!: SvgEditorSettings;
 
 	async onload() {
 		await this.loadSettings();
@@ -30,7 +30,7 @@ export default class SvgEditPlugin extends Plugin {
 				}
 
 				if (!checking) {
-					this.openSvgEditor(file);
+					void this.openSvgEditor(file);
 				}
 
 				return true;
@@ -41,7 +41,7 @@ export default class SvgEditPlugin extends Plugin {
 			id: 'create-svg',
 			name: 'Create new SVG',
 			callback: () => {
-				this.createAndOpenSvg();
+				void this.createAndOpenSvg();
 			}
 		});
 
@@ -52,7 +52,7 @@ export default class SvgEditPlugin extends Plugin {
 						item
 							.setTitle('Mit SVGEdit bearbeiten')
 							.setIcon('image')
-							.onClick(() => this.openSvgEditor(file));
+							.onClick(() => { void this.openSvgEditor(file); });
 					});
 				}
 			})
@@ -61,12 +61,16 @@ export default class SvgEditPlugin extends Plugin {
 		this.registerMarkdownPostProcessor((el, ctx) => {
 			this.decorateSvgEditButtons(el, ctx.sourcePath);
 		});
-		this.registerEvent(this.app.workspace.on('layout-change', () => this.decorateSvgEditButtons(document.body)));
+		this.registerEvent(this.app.workspace.on('layout-change', () => {
+			const currentDocument = activeDocument ?? document;
+			this.decorateSvgEditButtons(currentDocument.body);
+		}));
 		this.addSettingTab(new SvgEditorSettingTab(this.app, this));
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const savedData = await this.loadData() as Partial<SvgEditorSettings>;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 	}
 
 	async saveSettings() {
@@ -74,9 +78,10 @@ export default class SvgEditPlugin extends Plugin {
 	}
 
 	refreshInlineEditButtons(): void {
-		this.removeInlineEditButtons(document.body);
+		const currentDocument = activeDocument ?? document;
+		this.removeInlineEditButtons(currentDocument.body);
 		if (this.settings.showInlineEditButton) {
-			this.decorateSvgEditButtons(document.body);
+			this.decorateSvgEditButtons(currentDocument.body);
 		}
 	}
 
@@ -129,7 +134,8 @@ export default class SvgEditPlugin extends Plugin {
 			}
 			hostEl.addClass('svg-editor-inline-host');
 
-			const buttonEl = document.createElement('button');
+			const currentDocument = activeDocument ?? document;
+			const buttonEl = currentDocument.createElement('button');
 			buttonEl.type = 'button';
 			buttonEl.className = 'svg-editor-inline-edit-button';
 			buttonEl.setAttribute('aria-label', `Edit ${targetFile.basename}`);
@@ -141,7 +147,7 @@ export default class SvgEditPlugin extends Plugin {
 				event.stopPropagation();
 				event.stopImmediatePropagation();
 			};
-			buttonEl.addEventListener('pointerdown', (event) => {
+			buttonEl.addEventListener('pointerdown', (event: PointerEvent) => {
 				stopEmbedClick(event);
 				if (opened) {
 					return;
@@ -155,7 +161,7 @@ export default class SvgEditPlugin extends Plugin {
 			['mousedown', 'mouseup', 'dblclick'].forEach((eventName) => {
 				buttonEl.addEventListener(eventName, stopEmbedClick, { capture: true });
 			});
-			buttonEl.addEventListener('click', (event) => {
+			buttonEl.addEventListener('click', (event: MouseEvent) => {
 				stopEmbedClick(event);
 			}, { capture: true });
 			hostEl.appendChild(buttonEl);

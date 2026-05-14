@@ -602,11 +602,56 @@
 	border-radius: 0;
 }
 
+.svg-edit-swatch.color-000000 { background-color: #000000; }
+.svg-edit-swatch.color-3f3f3f { background-color: #3f3f3f; }
+.svg-edit-swatch.color-7f7f7f { background-color: #7f7f7f; }
+.svg-edit-swatch.color-bfbfbf { background-color: #bfbfbf; }
+.svg-edit-swatch.color-ffffff { background-color: #ffffff; }
+.svg-edit-swatch.color-ff0000 { background-color: #ff0000; }
+.svg-edit-swatch.color-ff7f00 { background-color: #ff7f00; }
+.svg-edit-swatch.color-ffff00 { background-color: #ffff00; }
+.svg-edit-swatch.color-7fff00 { background-color: #7fff00; }
+.svg-edit-swatch.color-00ff00 { background-color: #00ff00; }
+.svg-edit-swatch.color-00ff7f { background-color: #00ff7f; }
+.svg-edit-swatch.color-00ffff { background-color: #00ffff; }
+.svg-edit-swatch.color-007fff { background-color: #007fff; }
+.svg-edit-swatch.color-0000ff { background-color: #0000ff; }
+.svg-edit-swatch.color-7f00ff { background-color: #7f00ff; }
+.svg-edit-swatch.color-ff00ff { background-color: #ff00ff; }
+.svg-edit-swatch.color-ff007f { background-color: #ff007f; }
+.svg-edit-swatch.color-7f0000 { background-color: #7f0000; }
+.svg-edit-swatch.color-7f3f00 { background-color: #7f3f00; }
+.svg-edit-swatch.color-7f7f00 { background-color: #7f7f00; }
+.svg-edit-swatch.color-3f7f00 { background-color: #3f7f00; }
+.svg-edit-swatch.color-007f00 { background-color: #007f00; }
+.svg-edit-swatch.color-007f3f { background-color: #007f3f; }
+.svg-edit-swatch.color-007f7f { background-color: #007f7f; }
+.svg-edit-swatch.color-003f7f { background-color: #003f7f; }
+.svg-edit-swatch.color-00007f { background-color: #00007f; }
+.svg-edit-swatch.color-3f007f { background-color: #3f007f; }
+.svg-edit-swatch.color-7f007f { background-color: #7f007f; }
+.svg-edit-swatch.color-7f003f { background-color: #7f003f; }
+.svg-edit-swatch.color-ffaaaa { background-color: #ffaaaa; }
+.svg-edit-swatch.color-ffd4aa { background-color: #ffd4aa; }
+.svg-edit-swatch.color-ffffaa { background-color: #ffffaa; }
+.svg-edit-swatch.color-d4ffaa { background-color: #d4ffaa; }
+.svg-edit-swatch.color-aaffaa { background-color: #aaffaa; }
+.svg-edit-swatch.color-aaffd4 { background-color: #aaffd4; }
+.svg-edit-swatch.color-aaffff { background-color: #aaffff; }
+.svg-edit-swatch.color-aad4ff { background-color: #aad4ff; }
+.svg-edit-swatch.color-aaaaff { background-color: #aaaaff; }
+.svg-edit-swatch.color-d4aaff { background-color: #d4aaff; }
+.svg-edit-swatch.color-ffaaff { background-color: #ffaaff; }
+
 .svg-edit-swatch.is-none {
 	background-color: #fff;
 	background-image:
 		linear-gradient(45deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%),
 		linear-gradient(135deg, transparent 45%, var(--text-error) 46%, var(--text-error) 54%, transparent 55%);
+}
+
+.svg-marker {
+	pointer-events: none;
 }
 
 .svg-edit-canvas-host {

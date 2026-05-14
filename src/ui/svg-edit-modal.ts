@@ -182,6 +182,9 @@ const BASIC_SHAPE_PATHS: Record<string, string> = {
 
 export class SvgEditModal extends Modal {
 	private canvas: SvgCanvasWithExtras | null = null;
+    private get activeDocument(): Document {
+        return activeDocument ?? window.document;
+    }
 	private readonly file: TFile;
 	private readonly fallbackSvg: string;
 	private dirty = false;
@@ -306,7 +309,7 @@ export class SvgEditModal extends Modal {
 		window.addEventListener('pointerdown', this.contextMenuPointerAwayHandler, true);
 		window.addEventListener('mousedown', this.contextMenuClickAwayHandler, true);
 		window.addEventListener('click', this.contextMenuClickAwayHandler, true);
-		document.addEventListener('keydown', this.keydownHandler, true);
+		this.activeDocument.addEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.addEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.addEventListener('keyup', this.keyupHandler, true);
 		window.requestAnimationFrame(() => this.modalEl.focus());
@@ -321,7 +324,7 @@ export class SvgEditModal extends Modal {
 		window.removeEventListener('pointerdown', this.contextMenuPointerAwayHandler, true);
 		window.removeEventListener('mousedown', this.contextMenuClickAwayHandler, true);
 		window.removeEventListener('click', this.contextMenuClickAwayHandler, true);
-		document.removeEventListener('keydown', this.keydownHandler, true);
+		this.activeDocument.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keydown', this.keydownHandler, true);
 		this.modalEl.removeEventListener('keyup', this.keyupHandler, true);
 		if (this.shortcutScope) {
@@ -362,7 +365,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 		if (action === 'save') {
-			await this.save();
+			await void this.save();
 		} else {
 			this.dirty = false;
 			this.clearStoredDraft();
@@ -671,7 +674,7 @@ export class SvgEditModal extends Modal {
 		const headerEl = overviewEl.createDiv({ cls: 'svg-edit-overview-header' });
 		headerEl.createSpan({ text: 'Overview' });
 		const stageEl = overviewEl.createDiv({ cls: 'svg-edit-overview-stage' });
-		this.overviewSvgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		this.overviewSvgEl = this.activeDocument.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		this.overviewSvgEl.classList.add('svg-edit-overview-svg');
 		this.overviewSvgEl.setAttribute('aria-hidden', 'true');
 		stageEl.appendChild(this.overviewSvgEl);
@@ -846,7 +849,7 @@ export class SvgEditModal extends Modal {
 
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const defs = this.ensureDefsElement();
-		const gradient = document.createElementNS(svgNS, options.type);
+		const gradient = this.activeDocument.createElementNS(svgNS, options.type);
 		const id = `svg_edit_gradient_${Date.now()}`;
 		gradient.setAttribute('id', id);
 		if (options.type === 'linearGradient') {
@@ -866,11 +869,11 @@ export class SvgEditModal extends Modal {
 			}
 		}
 		gradient.setAttribute('spreadMethod', options.spreadMethod ?? 'pad');
-		const startStop = document.createElementNS(svgNS, 'stop');
+		const startStop = this.activeDocument.createElementNS(svgNS, 'stop');
 		startStop.setAttribute('offset', '0%');
 		startStop.setAttribute('stop-color', options.startColor);
 		startStop.setAttribute('stop-opacity', String(options.startOpacity / 100));
-		const endStop = document.createElementNS(svgNS, 'stop');
+		const endStop = this.activeDocument.createElementNS(svgNS, 'stop');
 		endStop.setAttribute('offset', '100%');
 		endStop.setAttribute('stop-color', options.endColor);
 		endStop.setAttribute('stop-opacity', String(options.endOpacity / 100));
@@ -948,16 +951,15 @@ export class SvgEditModal extends Modal {
 			this.setPaintColor(target, color);
 		};
 		const createSwatch = (container: HTMLElement, color: string) => {
+			const colorClass = color === 'none' ? 'is-none' : `color-${color.slice(1)}`;
 			const swatch = container.createEl('button', {
-				cls: 'svg-edit-swatch',
+				cls: `svg-edit-swatch ${colorClass}`,
 				attr: {
 					type: 'button',
 					title: color === 'none' ? 'No Color' : color,
 					'aria-label': color === 'none' ? 'No Color' : color
 				}
 			});
-			swatch.setCssProps({ 'background-color': color === 'none' ? '#fff' : color });
-			swatch.toggleClass('is-none', color === 'none');
 			swatch.addEventListener('click', (event) => applyColor(color, event));
 			swatch.addEventListener('contextmenu', (event) => applyColor(color, event));
 		};
@@ -996,7 +998,14 @@ export class SvgEditModal extends Modal {
 
 		const renderShapes = (category: string) => {
 			gridEl.empty();
-			(libraries[category] ?? libraries.basic).forEach((shape) => {
+			const shapes = (libraries[category] ?? libraries.basic) as Array<{
+				fill: boolean;
+				label: string;
+				pathData: string;
+				size: number;
+				value: string;
+			}>;
+			shapes.forEach((shape) => {
 				const shapeButton = this.createShapePreviewButton(gridEl, shape);
 				shapeButton.addEventListener('click', () => {
 					this.insertLibraryShape(shape.value);
@@ -1034,11 +1043,11 @@ export class SvgEditModal extends Modal {
 			}
 		});
 		const off = shape.size * 0.05;
-		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		const svg = this.activeDocument.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('viewBox', `${-off} ${-off} ${shape.size + off * 2} ${shape.size + off * 2}`);
 		svg.setAttribute('aria-hidden', 'true');
 		svg.setAttribute('focusable', 'false');
-		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		const path = this.activeDocument.createElementNS('http://www.w3.org/2000/svg', 'path');
 		path.setAttribute('d', shape.pathData);
 		path.setAttribute('fill', shape.fill ? '#f8bb00' : 'none');
 		path.setAttribute('stroke', '#f8bb00');
@@ -2019,7 +2028,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 		input.disabled = disabled;
-		if (document.activeElement !== input) {
+		if (this.activeDocument.activeElement !== input) {
 			input.value = value;
 		}
 	}
@@ -2059,12 +2068,12 @@ export class SvgEditModal extends Modal {
 		}
 
 		const setInput = (input: HTMLInputElement | null, value: string | null, fallback: string) => {
-			if (input && document.activeElement !== input) {
+			if (input && this.activeDocument.activeElement !== input) {
 				input.value = value ?? fallback;
 			}
 		};
 		const setSelect = (select: HTMLSelectElement | null, value: string | null, fallback: string) => {
-			if (!select || document.activeElement === select) {
+			if (!select || this.activeDocument.activeElement === select) {
 				return;
 			}
 			const normalized = value && value !== '0' ? value : fallback;
@@ -2265,7 +2274,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const textElement = this.canvas.getSelectedElements().find((element) => element?.tagName.toLowerCase() === 'text') ?? null;
+		const textElement = this.canvas.getSelectedElements().find((element: Element | null | undefined) => element?.tagName.toLowerCase() === 'text') ?? null;
 		if (!textElement) {
 			return;
 		}
@@ -2510,11 +2519,11 @@ export class SvgEditModal extends Modal {
 	}
 
 	private getSelectedTextElements(): Element[] {
-		return this.canvas?.getSelectedElements().filter((element) => element?.tagName === 'text') ?? [];
+		return this.canvas?.getSelectedElements().filter((element): element is Element => element instanceof Element && element.tagName === 'text') ?? [];
 	}
 
 	private convertSelectionToPath(): void {
-		const selectedElements = this.canvas?.getSelectedElements().filter(Boolean) ?? [];
+		const selectedElements = this.canvas?.getSelectedElements().filter((element): element is Element => element instanceof Element) ?? [];
 		selectedElements.forEach((element) => this.canvas?.convertToPath(element));
 		this.markDirty('Converted to path');
 	}
@@ -2844,7 +2853,8 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const markerOwners = this.canvas.getSvgContent().querySelectorAll('line, path, polyline, polygon');
+		const svgContent = this.canvas.getSvgContent() as SVGSVGElement;
+		const markerOwners = svgContent.querySelectorAll<SVGGraphicsElement>('line, path, polyline, polygon');
 		markerOwners.forEach((element) => {
 			const color = element.getAttribute('stroke') || '#000000';
 			(['marker-start', 'marker-mid', 'marker-end'] as const).forEach((attribute) => {
@@ -2901,11 +2911,11 @@ export class SvgEditModal extends Modal {
 		if (existing instanceof SVGMarkerElement) {
 			return existing;
 		}
-		const marker = document.createElementNS(svgNS, 'marker');
+		const marker = this.activeDocument.createElementNS(svgNS, 'marker');
 		marker.setAttribute('id', id);
 		marker.setAttribute('markerUnits', 'strokeWidth');
 		marker.setAttribute('orient', 'auto');
-		marker.setCssProps({ 'pointer-events': 'none' });
+		marker.classList.add('svg-marker');
 		marker.setAttribute('se_type', markerType);
 		marker.setAttribute('viewBox', '0 0 100 100');
 		marker.setAttribute('markerWidth', '5');
@@ -2927,14 +2937,14 @@ export class SvgEditModal extends Modal {
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const baseType = markerType.replace(/_o$/, '') as MarkerType;
 		if (baseType === 'mcircle') {
-			const circle = document.createElementNS(svgNS, 'circle');
+			const circle = this.activeDocument.createElementNS(svgNS, 'circle');
 			circle.setAttribute('r', '30');
 			circle.setAttribute('cx', '50');
 			circle.setAttribute('cy', '50');
 			return circle;
 		}
 
-		const path = document.createElementNS(svgNS, 'path');
+		const path = this.activeDocument.createElementNS(svgNS, 'path');
 		const pathDataByType: Partial<Record<MarkerType, string>> = {
 			leftarrow: 'M0,50 L100,90 L70,50 L100,10 Z',
 			rightarrow: 'M100,50 L0,90 L30,50 L0,10 Z',
@@ -2952,7 +2962,7 @@ export class SvgEditModal extends Modal {
 			return existing;
 		}
 
-		const defs = document.createElementNS(svgNS, 'defs');
+		const defs = this.activeDocument.createElementNS(svgNS, 'defs');
 		svgContent?.prepend(defs);
 		return defs;
 	}
@@ -2970,7 +2980,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const selected = this.canvas.getSelectedElements().filter((element) => element?.tagName === 'polygon');
+		const selected = this.canvas.getSelectedElements().filter((element): element is Element => element instanceof Element && element.tagName === 'polygon');
 		if (!selected.length) {
 			return;
 		}
@@ -3429,7 +3439,8 @@ export class SvgEditModal extends Modal {
 			return [];
 		}
 
-		return Array.from(this.canvas.getSvgContent().querySelectorAll<SVGPolylineElement>('polyline')).filter((element) => {
+		const svgContent = this.canvas.getSvgContent() as SVGSVGElement;
+		return Array.from(svgContent.querySelectorAll<SVGPolylineElement>('polyline')).filter((element) => {
 			return Boolean(element.getAttribute('data-connector') || element.getAttributeNS(SVG_EDIT_NS, 'connector') || element.getAttribute('se:connector'));
 		});
 	}
@@ -3690,11 +3701,11 @@ export class SvgEditModal extends Modal {
 	}
 
 	private downloadUrl(url: string, filename: string, revoke = false): void {
-		const anchor = document.createElement('a');
+		const anchor = this.activeDocument.createElement('a');
 		anchor.href = url;
 		anchor.download = filename;
 		anchor.rel = 'noopener';
-		document.body.append(anchor);
+		this.activeDocument.body.append(anchor);
 		anchor.click();
 		anchor.remove();
 		if (revoke) {
@@ -3836,7 +3847,7 @@ export class SvgEditModal extends Modal {
 		this.overviewSvgEl.setAttribute('width', String(this.canvasWidth));
 		this.overviewSvgEl.setAttribute('height', String(this.canvasHeight));
 
-		const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+		const background = this.activeDocument.createElementNS('http://www.w3.org/2000/svg', 'rect');
 		background.setAttribute('x', '0');
 		background.setAttribute('y', '0');
 		background.setAttribute('width', String(this.canvasWidth));
@@ -3844,7 +3855,7 @@ export class SvgEditModal extends Modal {
 		background.setAttribute('fill', this.backgroundColor || '#ffffff');
 		this.overviewSvgEl.appendChild(background);
 
-		const content = this.canvas.getSvgContent();
+		const content = this.canvas.getSvgContent() as SVGSVGElement;
 		Array.from(content.children).forEach((child) => {
 			if (child.id === 'selectorParentGroup' || child.id === 'canvasBackground') {
 				return;
@@ -4155,7 +4166,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		Object.entries(this.pickedStyle).forEach(([attribute, value]) => {
+		(Object.entries(this.pickedStyle) as Array<[string, string]>).forEach(([attribute, value]) => {
 			element.setAttribute(attribute, value);
 		});
 		this.canvas.call('changed', [element]);
@@ -4395,7 +4406,7 @@ export class SvgEditModal extends Modal {
 	}
 
 	private importSvgFile(): void {
-		const input = document.createElement('input');
+		const input = this.activeDocument.createElement('input');
 		input.type = 'file';
 		input.accept = 'image/svg+xml,.svg';
 		input.addEventListener('change', async () => {
@@ -4443,7 +4454,7 @@ export class SvgEditModal extends Modal {
 	}
 
 	private importImage(): void {
-		const input = document.createElement('input');
+		const input = this.activeDocument.createElement('input');
 		input.type = 'file';
 		input.accept = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml';
 		input.addEventListener('change', async () => {
@@ -4758,7 +4769,7 @@ export class SvgEditModal extends Modal {
 			return false;
 		}
 
-		if (!target || target === document.body || target === document.documentElement) {
+		if (!target || target === this.activeDocument.body || target === this.activeDocument.documentElement) {
 			return true;
 		}
 
@@ -5372,16 +5383,15 @@ class SvgPaintModal extends Modal {
 	private addQuickPalette(parentEl: HTMLElement, onPick: (color: string) => void): void {
 		const paletteEl = parentEl.createDiv({ cls: 'svg-paint-quick-palette' });
 		PALETTE_COLORS.forEach((color) => {
+			const colorClass = color === 'none' ? 'is-none' : `color-${color.slice(1)}`;
 			const swatchEl = paletteEl.createEl('button', {
-				cls: 'svg-edit-swatch',
+				cls: `svg-edit-swatch ${colorClass}`,
 				attr: {
 					type: 'button',
 					title: color === 'none' ? 'No Color' : color,
 					'aria-label': color === 'none' ? 'No Color' : color
 				}
 			});
-			swatchEl.setCssProps({ 'background-color': color === 'none' ? '#fff' : color });
-			swatchEl.toggleClass('is-none', color === 'none');
 			swatchEl.addEventListener('click', () => onPick(color));
 		});
 	}
