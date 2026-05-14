@@ -35,4 +35,4 @@ Unlike simple iframe embeds, this plugin utilizes the `SvgCanvas` from SVG-Edit 
 
 ## Disclaimer
 
-This plugin is **Vibe Coded** – created to fill a specific gap in my personal workflow. If you are a professional developer and want to take this project to the next level (e.g., integrating it as a regular workspace view instead of a modal), feel free to reach out or open a PR!
+I vibecode my plugins—and the scope of this work exceeds my programming skills, which are rudimentary. Because of this, there is always a residual risk when using them. I do this primarily to bridge certain gaps in my own workflow. Should these plugins ever become obsolete because a professional developer used them as inspiration to code something truly solid and sophisticated, I would be absolutely thrilled.
