@@ -365,7 +365,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 		if (action === 'save') {
-			await void this.save();
+			await this.save();
 		} else {
 			this.dirty = false;
 			this.clearStoredDraft();
@@ -427,7 +427,7 @@ export class SvgEditModal extends Modal {
 			gridColor: this.gridColor,
 			show_outside_canvas: true,
 			selectNew: true,
-			imgPath: '.obsidian/plugins/svgeditor/images'
+			imgPath: `${this.app.vault.configDir}/plugins/svgeditor/images`
 		}) as SvgCanvasWithExtras;
 
 		this.canvas.updateCanvas(dimensions.width, dimensions.height);
@@ -512,8 +512,8 @@ export class SvgEditModal extends Modal {
 		this.reorientButtonEl.addEventListener('click', () => this.reorientPath());
 		this.addActionButton(selectedPanel, 'Flip Horizontally', 'flip-horizontal-2', () => this.withDirtyAction('Flipped horizontally', () => this.canvas?.flipSelectedElements(-1, 1)));
 		this.addActionButton(selectedPanel, 'Flip Vertically', 'flip-vertical-2', () => this.withDirtyAction('Flipped vertically', () => this.canvas?.flipSelectedElements(1, -1)));
-		this.addActionButton(selectedPanel, 'Group [G]', 'group', () => this.withDirtyAction('Grouped', () => this.canvas?.groupSelectedElements()));
-		this.addActionButton(selectedPanel, 'Ungroup', 'ungroup', () => this.withDirtyAction('Ungrouped', () => this.canvas?.ungroupSelectedElement()));
+		this.addActionButton(selectedPanel, 'Group [G]', 'group', () => void this.withDirtyAction('Grouped', () => this.canvas?.groupSelectedElements()));
+		this.addActionButton(selectedPanel, 'Ungroup', 'ungroup', () => void this.withDirtyAction('Ungrouped', () => this.canvas?.ungroupSelectedElement()));
 		this.unlinkUseButtonEl = this.createIconButton(selectedPanel, 'Unlink Use', 'unlink');
 		this.unlinkUseButtonEl.addClass('svg-edit-use-only-button');
 		this.unlinkUseButtonEl.addEventListener('click', () => this.withDirtyAction('Use unlinked', () => this.canvas?.ungroupSelectedElement()));
@@ -602,14 +602,14 @@ export class SvgEditModal extends Modal {
 		});
 
 		const documentPanel = this.addPanel(toolbarEl, 'document_panel');
-		this.addNumberInput(documentPanel, 'Width', this.canvasWidth, 1, 10000, 10, (value) => this.resizeCanvas(value, this.canvasHeight));
-		this.addNumberInput(documentPanel, 'Height', this.canvasHeight, 1, 10000, 10, (value) => this.resizeCanvas(this.canvasWidth, value));
-		this.addActionButton(documentPanel, 'Document Properties', 'file-cog', () => this.openDocumentProperties());
-		this.addActionButton(documentPanel, 'Document Title', 'file-pen-line', () => this.setDocumentTitle());
-		this.addActionButton(documentPanel, 'Background Color', 'paint-bucket', () => this.setBackgroundColor());
-		this.addActionButton(documentPanel, 'Copy SVG Source', 'clipboard-copy', () => this.copySvgSource());
-		this.addActionButton(documentPanel, 'Export Image', 'download', () => this.openExportDialog());
-		this.addActionButton(documentPanel, 'Save [Ctrl+S]', 'save', () => this.save());
+		this.addNumberInput(documentPanel, 'Width', this.canvasWidth, 1, 10000, 10, (value) => void this.resizeCanvas(value, this.canvasHeight));
+		this.addNumberInput(documentPanel, 'Height', this.canvasHeight, 1, 10000, 10, (value) => void this.resizeCanvas(this.canvasWidth, value));
+		this.addActionButton(documentPanel, 'Document Properties', 'file-cog', () => void this.openDocumentProperties());
+		this.addActionButton(documentPanel, 'Document Title', 'file-pen-line', () => void this.setDocumentTitle());
+		this.addActionButton(documentPanel, 'Background Color', 'paint-bucket', () => void this.setBackgroundColor());
+		this.addActionButton(documentPanel, 'Copy SVG Source', 'clipboard-copy', () => void this.copySvgSource());
+		this.addActionButton(documentPanel, 'Export Image', 'download', () => void this.openExportDialog());
+		this.addActionButton(documentPanel, 'Save [Ctrl+S]', 'save', () => void this.save());
 		this.statusEl = documentPanel.createDiv({ cls: 'svg-edit-status', text: 'Ready' });
 		this.keyDebugEl = documentPanel.createDiv({ cls: 'svg-edit-key-debug', text: 'Key debug: waiting' });
 		this.updateContextPanels();
@@ -654,9 +654,9 @@ export class SvgEditModal extends Modal {
 		this.addActionButton(headerEl, 'Close Layer View', 'panel-right-close', () => this.toggleLayerPanel());
 
 		const actionsEl = panelEl.createDiv({ cls: 'svg-edit-layer-actions' });
-		this.addActionButton(actionsEl, 'New Layer', 'plus', () => this.createLayer());
-		this.addActionButton(actionsEl, 'Rename Layer', 'pencil', () => this.renameLayer());
-		this.addActionButton(actionsEl, 'Duplicate Layer', 'copy-plus', () => this.cloneLayer());
+		this.addActionButton(actionsEl, 'New Layer', 'plus', () => void this.createLayer());
+		this.addActionButton(actionsEl, 'Rename Layer', 'pencil', () => void this.renameLayer());
+		this.addActionButton(actionsEl, 'Duplicate Layer', 'copy-plus', () => void this.cloneLayer());
 		this.addActionButton(actionsEl, 'Delete Layer', 'trash-2', () => this.deleteLayer());
 		this.addActionButton(actionsEl, 'Move Layer Up', 'arrow-up', () => this.moveLayer(1));
 		this.addActionButton(actionsEl, 'Move Layer Down', 'arrow-down', () => this.moveLayer(-1));
@@ -902,7 +902,9 @@ export class SvgEditModal extends Modal {
 		const selected = this.canvas?.getSelectedElements().filter(Boolean) ?? [];
 		const elementName = selected.length === 1 ? selected[0].tagName.toLowerCase() : '';
 		if (value === 0 && ['line', 'polyline'].includes(elementName)) {
-			this.strokeWidthInputEl && (this.strokeWidthInputEl.value = '1');
+			if (this.strokeWidthInputEl) {
+				this.strokeWidthInputEl.value = '1';
+			}
 			return 1;
 		}
 		return value;
@@ -1628,7 +1630,14 @@ export class SvgEditModal extends Modal {
 			return [];
 		}
 
-		const drawing = this.canvas.getCurrentDrawing();
+		const drawing = this.canvas.getCurrentDrawing() as {
+			getNumLayers?: () => number;
+			getLayerName?: (index: number) => string;
+			getLayerVisibility?: (name: string) => boolean;
+			getCurrentLayerName?: () => string;
+			indexCurrentLayer?: () => number;
+			all_layers?: Array<{ getName(): string; isVisible(): boolean }>;
+		};
 		const currentName = this.currentLayerName();
 		if (typeof drawing.getNumLayers === 'function' && typeof drawing.getLayerName === 'function') {
 			const layers: LayerInfo[] = [];
@@ -1663,7 +1672,11 @@ export class SvgEditModal extends Modal {
 		if (!this.canvas) {
 			return 'Layer 1';
 		}
-		const drawing = this.canvas.getCurrentDrawing();
+		const drawing = this.canvas.getCurrentDrawing() as {
+			getCurrentLayerName?: () => string;
+			indexCurrentLayer?: () => number;
+			getLayerName?: (index: number) => string;
+		};
 		return drawing.getCurrentLayerName?.()
 			?? this.canvas.getCurrentLayerName?.()
 			?? drawing.getLayerName?.(drawing.indexCurrentLayer?.() ?? 0)
@@ -1676,7 +1689,7 @@ export class SvgEditModal extends Modal {
 			return false;
 		}
 
-		const drawing = this.canvas.getCurrentDrawing();
+		const drawing = this.canvas.getCurrentDrawing() as { hasLayer?: (name: string) => boolean };
 		return Boolean(drawing.hasLayer?.(trimmedName) || this.getLayerInfos().some((layer) => layer.name === trimmedName));
 	}
 
@@ -1705,7 +1718,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const drawing = this.canvas.getCurrentDrawing();
+		const drawing = this.canvas.getCurrentDrawing() as { setLayerOpacity?: (name: string, opacity: number) => void };
 		if (!drawing.setLayerOpacity) {
 			return;
 		}
@@ -1826,11 +1839,12 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		this.canvas.textActions.setInputElem(this.textInputEl);
+		const textActions = this.canvas.textActions as { setInputElem?: (element: HTMLInputElement) => void };
+		textActions.setInputElem?.(this.textInputEl);
 		this.textInputEl.addEventListener('input', () => {
 			this.changeTextContentDebounced(this.textInputEl?.value ?? '');
 		});
-		this.textInputEl.addEventListener('blur', () => this.commitPendingTextUndo());
+		this.textInputEl.addEventListener('blur', () => void this.commitPendingTextUndo());
 		this.canvas.bind('changed', () => {
 			this.markDirty('Changed');
 			this.syncMarkerColors();
@@ -2285,8 +2299,9 @@ export class SvgEditModal extends Modal {
 		}
 
 		this.canvas.changeSelectedAttributeNoUndo('#text', value, [textElement]);
-		this.canvas.textActions.init(value);
-		this.canvas.textActions.setCursor();
+		const textActions = this.canvas.textActions as { init?: (text: string) => void; setCursor?: () => void };
+		textActions.init?.(value);
+		textActions.setCursor?.();
 		this.markDirty('Text changed');
 
 		if (this.textUndoTimer !== null) {
@@ -2590,7 +2605,9 @@ export class SvgEditModal extends Modal {
 		}
 
 		this.canvas.setImageURL(trimmedUrl);
-		this.imageUrlInputEl && (this.imageUrlInputEl.value = trimmedUrl);
+		if (this.imageUrlInputEl) {
+			this.imageUrlInputEl.value = trimmedUrl;
+		}
 		if (!trimmedUrl.startsWith('data:')) {
 			await this.tryEmbedSelectedImage(trimmedUrl);
 		}
@@ -2628,7 +2645,9 @@ export class SvgEditModal extends Modal {
 			const image = await this.canvas.embedImage(url);
 			this.canvas.setMode('select');
 			this.canvas.selectOnly([image]);
-			this.imageUrlInputEl && (this.imageUrlInputEl.value = this.canvas.getHref(image));
+			if (this.imageUrlInputEl) {
+				this.imageUrlInputEl.value = this.canvas.getHref(image);
+			}
 			this.markDirty('Image embedded');
 			if (notifySuccess) {
 				new Notice('Image embedded.');
@@ -2853,7 +2872,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const svgContent = this.canvas.getSvgContent() as SVGSVGElement;
+		const svgContent = this.canvas.getSvgContent();
 		const markerOwners = svgContent.querySelectorAll<SVGGraphicsElement>('line, path, polyline, polygon');
 		markerOwners.forEach((element) => {
 			const color = element.getAttribute('stroke') || '#000000';
@@ -3439,7 +3458,7 @@ export class SvgEditModal extends Modal {
 			return [];
 		}
 
-		const svgContent = this.canvas.getSvgContent() as SVGSVGElement;
+		const svgContent = this.canvas.getSvgContent();
 		return Array.from(svgContent.querySelectorAll<SVGPolylineElement>('polyline')).filter((element) => {
 			return Boolean(element.getAttribute('data-connector') || element.getAttributeNS(SVG_EDIT_NS, 'connector') || element.getAttribute('se:connector'));
 		});
@@ -3855,7 +3874,7 @@ export class SvgEditModal extends Modal {
 		background.setAttribute('fill', this.backgroundColor || '#ffffff');
 		this.overviewSvgEl.appendChild(background);
 
-		const content = this.canvas.getSvgContent() as SVGSVGElement;
+		const content = this.canvas.getSvgContent();
 		Array.from(content.children).forEach((child) => {
 			if (child.id === 'selectorParentGroup' || child.id === 'canvasBackground') {
 				return;
@@ -4415,7 +4434,7 @@ export class SvgEditModal extends Modal {
 				return;
 			}
 
-			await this.importSvgSource(await file.text());
+			void this.importSvgSource(await file.text());
 		});
 		input.click();
 	}
@@ -4463,7 +4482,7 @@ export class SvgEditModal extends Modal {
 				return;
 			}
 
-			await this.importBitmapFile(file);
+			void this.importBitmapFile(file);
 		});
 		input.click();
 	}
@@ -5049,7 +5068,7 @@ class SvgPromptModal extends Modal {
 				this.resolve(null);
 			}
 		});
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			input.focus();
 			input.select();
 		});
@@ -5933,7 +5952,7 @@ class SvgSourceModal extends Modal {
 				applySource();
 			}
 		});
-		requestAnimationFrame(() => textarea.focus());
+		window.requestAnimationFrame(() => textarea.focus());
 	}
 
 	onClose() {

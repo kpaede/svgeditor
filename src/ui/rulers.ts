@@ -1,4 +1,3 @@
-import SvgCanvas from '@svgedit/svgcanvas';
 import { SvgCanvasWithExtras } from '../svg/types';
 
 type Axis = 'x' | 'y';
@@ -75,8 +74,8 @@ export class Rulers {
 		if (this.animationFrame) {
 			cancelAnimationFrame(this.animationFrame);
 		}
-		this.animationFrame = requestAnimationFrame(() => {
-			this.animationFrame = requestAnimationFrame(() => {
+		this.animationFrame = window.requestAnimationFrame(() => {
+			this.animationFrame = window.requestAnimationFrame(() => {
 				this.animationFrame = 0;
 				this.updateRulers();
 			});
@@ -126,7 +125,7 @@ export class Rulers {
 		}
 
 		const oldCanvas = inner.querySelector('canvas');
-		const canvas = this.workarea.ownerDocument!.createElement('canvas');
+		const canvas = this.workarea.ownerDocument.createElement('canvas');
 		if (oldCanvas) {
 			oldCanvas.replaceWith(canvas);
 		} else {
