@@ -5,6 +5,11 @@ on:
     tags:
       - "*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag/version. Leave empty to use manifest.json version."
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -31,6 +36,19 @@ jobs:
       - name: Build plugin
         run: npm run build
 
+      - name: Resolve release tag
+        id: release
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="$(node -p "require('./manifest.json').version")"
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Attest main.js
         uses: actions/attest@v4
         with:
@@ -42,13 +60,13 @@ jobs:
           subject-path: styles.css
 
       - name: Create draft release
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag="${GITHUB_REF#refs/tags/}"
+          tag="${{ steps.release.outputs.tag }}"
 
           gh release create "$tag" \
             --title="$tag" \
             --draft \
+            --target="${GITHUB_SHA}" \
             main.js manifest.json styles.css
