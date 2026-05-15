@@ -182,9 +182,9 @@ const BASIC_SHAPE_PATHS: Record<string, string> = {
 
 export class SvgEditModal extends Modal {
 	private canvas: SvgCanvasWithExtras | null = null;
-    private get activeDocument(): Document {
-        return activeDocument ?? window.document;
-    }
+	private get activeDocument(): Document {
+		return activeDocument;
+	}
 	private readonly file: TFile;
 	private readonly fallbackSvg: string;
 	private dirty = false;
@@ -280,7 +280,9 @@ export class SvgEditModal extends Modal {
 	private workareaScrollHandler = () => this.handleWorkareaScroll();
 	private workareaContextMenuHandler = (event: MouseEvent) => this.handleWorkareaContextMenu(event);
 	private workareaDragOverHandler = (event: DragEvent) => this.handleWorkareaDragOver(event);
-	private workareaDropHandler = (event: DragEvent) => this.handleWorkareaDrop(event);
+	private workareaDropHandler = (event: DragEvent) => {
+		void this.handleWorkareaDrop(event);
+	};
 	private contextMenuClickAwayHandler = (event: MouseEvent) => this.handleContextMenuClickAway(event);
 	private contextMenuPointerAwayHandler = (event: PointerEvent) => this.handleContextMenuClickAway(event);
 	private windowMouseUpHandler = (event: MouseEvent) => this.handleWindowMouseUp(event);
@@ -524,9 +526,9 @@ export class SvgEditModal extends Modal {
 		this.unlinkUseButtonEl.addEventListener('click', () => this.withDirtyAction('Use unlinked', () => this.canvas?.ungroupSelectedElement()));
 		this.addActionButton(selectedPanel, 'Enter Group Context', 'square-mouse-pointer', () => this.enterSelectedContext());
 		this.addActionButton(selectedPanel, 'Leave Group Context', 'corner-up-left', () => this.leaveCurrentContext());
-		this.addActionButton(selectedPanel, 'Create Link', 'link', () => this.createOrEditLink());
+		this.addActionButton(selectedPanel, 'Create Link', 'link', () => void this.createOrEditLink());
 		this.addActionButton(selectedPanel, 'Remove Link', 'unlink', () => this.withDirtyAction('Link removed', () => this.canvas?.removeHyperlink()));
-		this.addActionButton(selectedPanel, 'Image URL', 'image-up', () => this.setSelectedImageUrl());
+		this.addActionButton(selectedPanel, 'Image URL', 'image-up', () => void this.setSelectedImageUrl());
 		this.selectedIdInputEl = this.addSelectedTextField(selectedPanel, 'id', 'Element ID', (value) => this.changeSelectedTextAttribute('id', value));
 		this.selectedClassInputEl = this.addSelectedTextField(selectedPanel, 'Class', 'Element Class', (value) => this.changeSelectedTextAttribute('class', value));
 		this.selectedAngleInputEl = this.addSelectedNumberField(selectedPanel, 'Rot', -180, 180, 5, (value) => {
@@ -1314,7 +1316,7 @@ export class SvgEditModal extends Modal {
 		this.imageUrlInputEl = this.addTextControl(imagePanel, 'URL', 'Image URL', (value) => {
 			void this.applySelectedImageUrl(value);
 		});
-		this.addActionButton(imagePanel, 'Image URL', 'image-up', () => this.setSelectedImageUrl());
+		this.addActionButton(imagePanel, 'Image URL', 'image-up', () => void this.setSelectedImageUrl());
 		this.addActionButton(imagePanel, 'Embed Image', 'file-down', () => {
 			void this.embedSelectedImage();
 		});
@@ -1819,13 +1821,13 @@ export class SvgEditModal extends Modal {
 	private openLayerContextMenu(layer: LayerInfo, clientX: number, clientY: number): void {
 		const layerCount = this.getLayerInfos().length;
 		this.renderContextMenu([
-			{ label: 'Duplicate Layer', action: () => this.cloneLayer() },
+			{ label: 'Duplicate Layer', action: () => void this.cloneLayer() },
 			{ label: 'Delete Layer', action: () => this.deleteLayer(), disabled: layerCount <= 1 },
 			{ separator: true, label: '' },
 			{ label: 'Merge Down', action: () => this.mergeLayer(), disabled: layerCount <= 1 || layer.index <= 0 },
 			{ label: 'Merge All Layers', action: () => this.mergeAllLayers(), disabled: layerCount <= 1 },
 			{ separator: true, label: '' },
-			{ label: 'Rename Layer', action: () => this.renameLayer() }
+			{ label: 'Rename Layer', action: () => void this.renameLayer() }
 		], clientX, clientY);
 	}
 
@@ -4190,7 +4192,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		(Object.entries(this.pickedStyle) as Array<[string, string]>).forEach(([attribute, value]) => {
+		Object.entries(this.pickedStyle).forEach(([attribute, value]) => {
 			element.setAttribute(attribute, value);
 		});
 		this.canvas.call('changed', [element]);
@@ -4433,13 +4435,18 @@ export class SvgEditModal extends Modal {
 		const input = this.activeDocument.createElement('input');
 		input.type = 'file';
 		input.accept = 'image/svg+xml,.svg';
-		input.addEventListener('change', async () => {
+		input.addEventListener('change', () => {
 			const file = input.files?.[0];
 			if (!file) {
 				return;
 			}
 
-			void this.importSvgSource(await file.text());
+			void file.text().then((source) => {
+				void this.importSvgSource(source);
+			}).catch((error) => {
+				console.error(error);
+				new Notice('SVG file could not be read.');
+			});
 		});
 		input.click();
 	}
@@ -4481,7 +4488,7 @@ export class SvgEditModal extends Modal {
 		const input = this.activeDocument.createElement('input');
 		input.type = 'file';
 		input.accept = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml';
-		input.addEventListener('change', async () => {
+		input.addEventListener('change', () => {
 			const file = input.files?.[0];
 			if (!file || !this.canvas) {
 				return;
@@ -5793,10 +5800,14 @@ class SvgExportModal extends Modal {
 		const cancelButton = actions.createEl('button', { text: 'Cancel' });
 		cancelButton.addEventListener('click', () => this.close());
 		const exportButton = actions.createEl('button', { text: 'Export' });
-		exportButton.addEventListener('click', async () => {
+		exportButton.addEventListener('click', () => {
 			const quality = Math.max(0, Math.min(100, Number(qualityInput.value) || 100)) / 100;
-			await this.onExport({ type: typeSelect.value as ExportType, quality });
-			this.close();
+			void this.onExport({ type: typeSelect.value as ExportType, quality })
+				.then(() => this.close())
+				.catch((error) => {
+					console.error(error);
+					new Notice('Export failed.');
+				});
 		});
 	}
 
@@ -5850,14 +5861,15 @@ class SvgSourceModal extends Modal {
 
 		const actions = this.contentEl.createDiv({ cls: 'svg-source-actions' });
 		const copyButton = actions.createEl('button', { text: 'Copy' });
-		copyButton.addEventListener('click', async () => {
-			try {
-				await navigator.clipboard.writeText(textarea.value);
-				new Notice('SVG source copied to clipboard.');
-			} catch (error) {
-				console.error(error);
-				new Notice('Clipboard access is unavailable.');
-			}
+		copyButton.addEventListener('click', () => {
+			void navigator.clipboard.writeText(textarea.value)
+				.then(() => {
+					new Notice('SVG source copied to clipboard.');
+				})
+				.catch((error) => {
+					console.error(error);
+					new Notice('Clipboard access is unavailable.');
+				});
 		});
 		const cancelButton = actions.createEl('button', { text: 'Cancel' });
 		cancelButton.addEventListener('click', () => this.close());

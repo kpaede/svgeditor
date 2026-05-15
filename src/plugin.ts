@@ -62,8 +62,7 @@ export default class SvgEditPlugin extends Plugin {
 			this.decorateSvgEditButtons(el, ctx.sourcePath);
 		});
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
-			const currentDocument = activeDocument ?? document;
-			this.decorateSvgEditButtons(currentDocument.body);
+			this.decorateSvgEditButtons(activeDocument.body);
 		}));
 		this.addSettingTab(new SvgEditorSettingTab(this.app, this));
 	}
@@ -78,10 +77,9 @@ export default class SvgEditPlugin extends Plugin {
 	}
 
 	refreshInlineEditButtons(): void {
-		const currentDocument = activeDocument ?? document;
-		this.removeInlineEditButtons(currentDocument.body);
+		this.removeInlineEditButtons(activeDocument.body);
 		if (this.settings.showInlineEditButton) {
-			this.decorateSvgEditButtons(currentDocument.body);
+			this.decorateSvgEditButtons(activeDocument.body);
 		}
 	}
 
@@ -134,8 +132,7 @@ export default class SvgEditPlugin extends Plugin {
 			}
 			hostEl.addClass('svg-editor-inline-host');
 
-			const currentDocument = activeDocument ?? document;
-			const buttonEl = currentDocument.createElement('button');
+			const buttonEl = activeDocument.createElement('button');
 			buttonEl.type = 'button';
 			buttonEl.className = 'svg-editor-inline-edit-button';
 			buttonEl.setAttribute('aria-label', `Edit ${targetFile.basename}`);
