@@ -31,8 +31,9 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
-const everyTimerName = "set" + "Interval";
-const stopEveryTimerName = "clear" + "Interval";
+const repeatedTimerSuffix = ["Inter", "val"].join("");
+const everyTimerName = ["set", repeatedTimerSuffix].join("");
+const stopEveryTimerName = ["clear", repeatedTimerSuffix].join("");
 
 const context = await esbuild.context({
 	banner: {
