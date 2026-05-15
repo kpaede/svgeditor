@@ -23,18 +23,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "18.x"
           cache: npm
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build plugin
-        run: npm run build
 
       - name: Resolve release tag
         id: release
@@ -48,6 +44,30 @@ jobs:
           fi
 
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release tag
+        run: |
+          tag="${{ steps.release.outputs.tag }}"
+          manifest_version="$(node -p "require('./manifest.json').version")"
+
+          if [[ "$tag" != "$manifest_version" ]]; then
+            echo "::error::Release tag '$tag' must match manifest.json version '$manifest_version'."
+            exit 1
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            tag_sha="$(git rev-list -n 1 "$tag")"
+            if [[ "$tag_sha" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag '$tag' points to $tag_sha, but this workflow is building $GITHUB_SHA. Bump the version and create a new tag, or move the tag intentionally before releasing."
+              exit 1
+            fi
+          fi
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build plugin
+        run: npm run build
 
       - name: Attest main.js
         uses: actions/attest@v4
