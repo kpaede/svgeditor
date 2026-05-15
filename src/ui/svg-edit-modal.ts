@@ -285,6 +285,11 @@ export class SvgEditModal extends Modal {
 	private contextMenuPointerAwayHandler = (event: PointerEvent) => this.handleContextMenuClickAway(event);
 	private windowMouseUpHandler = (event: MouseEvent) => this.handleWindowMouseUp(event);
 
+	private targetElement(event: Event): Element | null {
+		const target = event.target as (Node & { instanceOf?: Node['instanceOf'] }) | null;
+		return target?.instanceOf?.(Element) ? target : null;
+	}
+
 	constructor(app: App, file: TFile, fallbackSvg = SVG_MIME_PLACEHOLDER) {
 		super(app);
 		this.file = file;
@@ -2534,11 +2539,11 @@ export class SvgEditModal extends Modal {
 	}
 
 	private getSelectedTextElements(): Element[] {
-		return this.canvas?.getSelectedElements().filter((element): element is Element => element instanceof Element && element.tagName === 'text') ?? [];
+		return this.canvas?.getSelectedElements().filter((element): element is Element => element.instanceOf(Element) && element.tagName === 'text') ?? [];
 	}
 
 	private convertSelectionToPath(): void {
-		const selectedElements = this.canvas?.getSelectedElements().filter((element): element is Element => element instanceof Element) ?? [];
+		const selectedElements = this.canvas?.getSelectedElements().filter((element): element is Element => element.instanceOf(Element)) ?? [];
 		selectedElements.forEach((element) => this.canvas?.convertToPath(element));
 		this.markDirty('Converted to path');
 	}
@@ -2927,7 +2932,7 @@ export class SvgEditModal extends Modal {
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const defs = this.ensureDefsElement();
 		const existing = defs.querySelector(`#${CSS.escape(id)}`);
-		if (existing instanceof SVGMarkerElement) {
+		if (existing?.instanceOf(SVGMarkerElement)) {
 			return existing;
 		}
 		const marker = this.activeDocument.createElementNS(svgNS, 'marker');
@@ -2977,7 +2982,7 @@ export class SvgEditModal extends Modal {
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const svgContent = this.canvas?.getSvgContent();
 		const existing = svgContent?.querySelector('defs');
-		if (existing instanceof SVGDefsElement) {
+		if (existing?.instanceOf(SVGDefsElement)) {
 			return existing;
 		}
 
@@ -2999,7 +3004,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const selected = this.canvas.getSelectedElements().filter((element): element is Element => element instanceof Element && element.tagName === 'polygon');
+		const selected = this.canvas.getSelectedElements().filter((element): element is Element => element.instanceOf(Element) && element.tagName === 'polygon');
 		if (!selected.length) {
 			return;
 		}
@@ -3250,7 +3255,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const selected = this.canvas.getSelectedElements().filter((element): element is SVGGraphicsElement => element instanceof SVGGraphicsElement);
+		const selected = this.canvas.getSelectedElements().filter((element): element is SVGGraphicsElement => element.instanceOf(SVGGraphicsElement));
 		if (selected.length >= 2) {
 			this.createConnectorFromElements(selected[0], selected[1]);
 			return;
@@ -3265,7 +3270,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const selected = this.canvas.getSelectedElements().filter((element): element is SVGGraphicsElement => element instanceof SVGGraphicsElement);
+		const selected = this.canvas.getSelectedElements().filter((element): element is SVGGraphicsElement => element.instanceOf(SVGGraphicsElement));
 		if (selected.length < 2) {
 			new Notice('Select two shapes to connect.');
 			return;
@@ -3303,7 +3308,7 @@ export class SvgEditModal extends Modal {
 				style: 'pointer-events:none'
 			}
 		});
-		if (!(line instanceof SVGPolylineElement)) {
+		if (!line.instanceOf(SVGPolylineElement)) {
 			return null;
 		}
 		line.setAttributeNS(SVG_EDIT_NS, 'se:connector', connectorValue);
@@ -3317,7 +3322,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const startElement = this.getConnectableTarget(event.target instanceof Element ? event.target : null);
+		const startElement = this.getConnectableTarget(this.targetElement(event));
 		if (!startElement) {
 			return;
 		}
@@ -3367,7 +3372,7 @@ export class SvgEditModal extends Modal {
 		this.connectorDrag = null;
 		line.remove();
 
-		const endElement = this.getConnectableTarget(event.target instanceof Element ? event.target : null);
+		const endElement = this.getConnectableTarget(this.targetElement(event));
 		if (!endElement || endElement === startElement) {
 			this.setStatus('Connector cancelled');
 			return;
@@ -3386,7 +3391,7 @@ export class SvgEditModal extends Modal {
 
 	private getConnectableTarget(target: Element | null): SVGGraphicsElement | null {
 		const element = this.getPaintableTarget(target);
-		if (!(element instanceof SVGGraphicsElement) || element.tagName.toLowerCase() === 'image') {
+		if (!element?.instanceOf(SVGGraphicsElement) || element.tagName.toLowerCase() === 'image') {
 			return null;
 		}
 		if (element.id.startsWith('conn_')) {
@@ -4018,7 +4023,7 @@ export class SvgEditModal extends Modal {
 		if (!this.canvas || !this.canvasHostEl) {
 			return;
 		}
-		if (!this.isEditableKeyTarget(event.target instanceof Element ? event.target : null)) {
+		if (!this.isEditableKeyTarget(this.targetElement(event))) {
 			this.canvasHostEl.focus({ preventScroll: true });
 		}
 		if (event.button !== 2) {
@@ -4091,7 +4096,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const target = event.target instanceof Element ? event.target : null;
+		const target = this.targetElement(event);
 		const element = this.getPaintableTarget(target);
 		if (!element) {
 			return;
@@ -4341,7 +4346,7 @@ export class SvgEditModal extends Modal {
 			return;
 		}
 
-		const target = event.target instanceof Node ? event.target : null;
+		const target = event.target as Node | null;
 		if (target && this.contextMenuEl.contains(target)) {
 			return;
 		}
@@ -4530,7 +4535,7 @@ export class SvgEditModal extends Modal {
 		if (handledEvent.svgEditHandled) {
 			return;
 		}
-		const target = event.target instanceof Element ? event.target : null;
+		const target = this.targetElement(event);
 		this.updateKeyDebug(event, target, 'seen');
 		if (!this.shouldHandleKeydown(event, target)) {
 			this.updateKeyDebug(event, target, 'ignored');
@@ -4557,7 +4562,7 @@ export class SvgEditModal extends Modal {
 
 		if (modifier && isShortcut('s')) {
 			this.consumeShortcut(event);
-			this.save();
+			void this.save();
 			return;
 		}
 
@@ -4740,7 +4745,7 @@ export class SvgEditModal extends Modal {
 	}
 
 	private handleKeyup(event: KeyboardEvent): void {
-		const target = event.target instanceof Element ? event.target : null;
+		const target = this.targetElement(event);
 		if (!this.shouldHandleKeydown(event, target) || this.isEditableKeyTarget(target)) {
 			return;
 		}
@@ -4804,7 +4809,7 @@ export class SvgEditModal extends Modal {
 
 	private consumeShortcut(event: KeyboardEvent): void {
 		(event as KeyboardEvent & { svgEditHandled?: boolean }).svgEditHandled = true;
-		this.updateKeyDebug(event, event.target instanceof Element ? event.target : null, 'handled');
+		this.updateKeyDebug(event, this.targetElement(event), 'handled');
 		event.preventDefault();
 		event.stopPropagation();
 		event.stopImmediatePropagation();
@@ -5314,7 +5319,7 @@ class SvgPaintModal extends Modal {
 		const formEl = parentEl.createDiv({ cls: 'svg-paint-gradient-form' });
 		const previewEl = formEl.createDiv({ cls: 'svg-paint-gradient-preview' });
 		const controlsEl = formEl.createDiv({ cls: 'svg-paint-gradient-controls' });
-		const startInput = this.addColorField(formEl, 'Start', this.startColor, (value) => {
+		this.addColorField(formEl, 'Start', this.startColor, (value) => {
 			this.startColor = value;
 		});
 		const endInput = this.addColorField(formEl, 'End', this.endColor, (value) => {
@@ -5520,90 +5525,6 @@ class SvgPaintModal extends Modal {
 			g: Math.round((green + match) * 255),
 			b: Math.round((blue + match) * 255)
 		};
-	}
-}
-
-class SvgGradientModal extends Modal {
-	private readonly initialOptions: GradientOptions;
-	private readonly onApply: (options: GradientOptions) => void;
-
-	constructor(app: App, initialOptions: GradientOptions, onApply: (options: GradientOptions) => void) {
-		super(app);
-		this.initialOptions = initialOptions;
-		this.onApply = onApply;
-	}
-
-	onOpen() {
-		this.modalEl.addClass('svg-gradient-modal');
-		this.titleEl.setText('Gradient Paint');
-
-		const form = this.contentEl.createDiv({ cls: 'svg-gradient-form' });
-		const targetSelect = this.addSelectField(form, 'Target', [
-			{ label: 'Fill', value: 'fill' },
-			{ label: 'Stroke', value: 'stroke' }
-		], this.initialOptions.target);
-		const typeSelect = this.addSelectField(form, 'Type', [
-			{ label: 'Linear', value: 'linearGradient' },
-			{ label: 'Radial', value: 'radialGradient' }
-		], this.initialOptions.type);
-		const startColorInput = this.addColorField(form, 'Start', this.initialOptions.startColor);
-		const endColorInput = this.addColorField(form, 'End', this.initialOptions.endColor);
-		const startOpacityInput = this.addNumberField(form, 'Start opacity', this.initialOptions.startOpacity);
-		const endOpacityInput = this.addNumberField(form, 'End opacity', this.initialOptions.endOpacity);
-
-		const actions = this.contentEl.createDiv({ cls: 'svg-gradient-actions' });
-		const cancelButton = actions.createEl('button', { text: 'Cancel' });
-		cancelButton.addEventListener('click', () => this.close());
-		const applyButton = actions.createEl('button', { text: 'Apply', cls: 'mod-cta' });
-		applyButton.addEventListener('click', () => {
-			this.onApply({
-				target: targetSelect.value as 'fill' | 'stroke',
-				type: typeSelect.value as 'linearGradient' | 'radialGradient',
-				startColor: startColorInput.value,
-				endColor: endColorInput.value,
-				startOpacity: Math.max(0, Math.min(100, Number(startOpacityInput.value) || 0)),
-				endOpacity: Math.max(0, Math.min(100, Number(endOpacityInput.value) || 0))
-			});
-			this.close();
-		});
-	}
-
-	onClose() {
-		this.contentEl.empty();
-	}
-
-	private addSelectField(parentEl: HTMLElement, label: string, options: Array<{ label: string; value: string }>, value: string): HTMLSelectElement {
-		const wrapper = parentEl.createEl('label', { cls: 'svg-gradient-field' });
-		wrapper.createSpan({ text: label });
-		const select = wrapper.createEl('select');
-		options.forEach((option) => select.createEl('option', { text: option.label, value: option.value }));
-		select.value = value;
-		return select;
-	}
-
-	private addColorField(parentEl: HTMLElement, label: string, value: string): HTMLInputElement {
-		const wrapper = parentEl.createEl('label', { cls: 'svg-gradient-field' });
-		wrapper.createSpan({ text: label });
-		return wrapper.createEl('input', {
-			attr: {
-				type: 'color',
-				value
-			}
-		});
-	}
-
-	private addNumberField(parentEl: HTMLElement, label: string, value: number): HTMLInputElement {
-		const wrapper = parentEl.createEl('label', { cls: 'svg-gradient-field' });
-		wrapper.createSpan({ text: label });
-		return wrapper.createEl('input', {
-			attr: {
-				type: 'number',
-				min: '0',
-				max: '100',
-				step: '5',
-				value: String(value)
-			}
-		});
 	}
 }
 
@@ -5963,8 +5884,14 @@ class SvgSourceModal extends Modal {
 function readFileAsDataUri(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
-		reader.addEventListener('load', () => resolve(String(reader.result)));
-		reader.addEventListener('error', () => reject(reader.error));
+		reader.addEventListener('load', () => {
+			if (typeof reader.result === 'string') {
+				resolve(reader.result);
+				return;
+			}
+			reject(new Error('FileReader returned a non-string data URI.'));
+		});
+		reader.addEventListener('error', () => reject(reader.error ?? new Error('File could not be read.')));
 		reader.readAsDataURL(file);
 	});
 }
