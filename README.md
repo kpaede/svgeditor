@@ -43,4 +43,4 @@ This plugin uses `SvgCanvas` from SVG-edit inside an Obsidian modal instead of e
 
 ## Disclaimer
 
-This plugin was built to bridge a practical workflow gap in Obsidian. It is useful, but it is also ambitious and may still have rough edges. Please keep backups of important files and treat complex SVG editing with the usual care.
+I vibecode my plugins—and the scope of this work exceeds my programming skills. Because of this, there is always a residual risk when using them. I do this primarily to bridge certain gaps in my own workflow. Should these plugins ever become obsolete because a professional developer used them as inspiration to code something truly solid and sophisticated, I would be absolutely thrilled.
